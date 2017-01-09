@@ -129,6 +129,8 @@
 #endif
 
 
+extern const AP_HAL::HAL& hal;
+
 class Copter : public AP_HAL::HAL::Callbacks {
 public:
     friend class GCS_MAVLINK_Copter;
@@ -180,6 +182,8 @@ private:
     // Dataflash
     DataFlash_Class DataFlash;
 
+    const AP_HAL::HAL& chal = hal;
+    
     AP_GPS gps;
 
     // flight modes convenience array

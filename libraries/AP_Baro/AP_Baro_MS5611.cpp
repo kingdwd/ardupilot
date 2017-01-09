@@ -81,7 +81,14 @@ bool AP_Baro_MS56XX::_init()
         return false;
     }
 
-    if (!_dev->get_semaphore()->take(0)) {
+    AP_HAL::Semaphore *sem=_dev->get_semaphore();// bus semaphore
+    _sem = hal.util->new_semaphore(); // update semaphore
+    
+    if (!sem || !_sem) {
+         AP_HAL::panic("AP_Baro_MS56XX: failed to create semaphore");
+    }
+
+    if (!sem->take(0)) {
         AP_HAL::panic("PANIC: AP_Baro_MS56XX: failed to take serial semaphore for init");
     }
 
@@ -108,7 +115,7 @@ bool AP_Baro_MS56XX::_init()
     }
 
     if (!prom_read_ok) {
-        _dev->get_semaphore()->give();
+        sem->give();
         return false;
     }
 
@@ -133,7 +140,7 @@ bool AP_Baro_MS56XX::_init()
     // lower retries for run
     _dev->set_retries(3);
     
-    _dev->get_semaphore()->give();
+    sem->give();
 
     /* Request 100Hz update */
     _dev->register_periodic_callback(10 * USEC_PER_MSEC,
@@ -263,6 +270,10 @@ bool AP_Baro_MS56XX::_timer(void)
 {
     uint8_t next_cmd;
     uint8_t next_state;
+
+    if (!_sem->take_nonblocking()) 
+        return true;
+
     uint32_t adc_val = _read_adc();
 
     /*
@@ -277,8 +288,9 @@ bool AP_Baro_MS56XX::_timer(void)
 
     next_cmd = next_state == 0 ? ADDR_CMD_CONVERT_TEMPERATURE
                                : ADDR_CMD_CONVERT_PRESSURE;
+                               
     if (!_dev->transfer(&next_cmd, 1, nullptr, 0)) {
-        return true;
+        goto exit;
     }
 
     /* if we had a failed read we are all done */
@@ -286,16 +298,16 @@ bool AP_Baro_MS56XX::_timer(void)
         // a failed read can mean the next returned value will be
         // corrupt, we must discard it
         _discard_next = true;
-        return true;
+        goto exit;
     }
 
     if (_discard_next) {
         _discard_next = false;
         _state = next_state;
-        return true;
+        goto exit;
     }
 
-    if (_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
+
         if (_state == 0) {
             _update_and_wrap_accumulator(&_accum.s_D2, adc_val,
                                          &_accum.d2_count, 32);
@@ -303,9 +315,11 @@ bool AP_Baro_MS56XX::_timer(void)
             _update_and_wrap_accumulator(&_accum.s_D1, adc_val,
                                          &_accum.d1_count, 128);
         }
-        _sem->give();
         _state = next_state;
-    }
+
+
+exit:
+    _sem->give();
 
     return true;
 }
@@ -323,8 +337,8 @@ void AP_Baro_MS56XX::_update_and_wrap_accumulator(uint32_t *accum, uint32_t val,
 
 void AP_Baro_MS56XX::update()
 {
-    uint32_t sD1, sD2;
-    uint8_t d1count, d2count;
+    volatile uint32_t sD1, sD2;
+    volatile uint8_t d1count, d2count; // if this vars are not volatile then compiler optimizes it out and uses directly _accum 
 
     if (!_sem->take(0)) {
         return;
@@ -395,7 +409,7 @@ void AP_Baro_MS56XX::_calculate_5611()
 
     float pressure = (_D1*SENS/2097152 - OFF)/32768;
     float temperature = (TEMP + 2000) * 0.01f;
-    _copy_to_frontend(_instance, pressure, temperature);
+    _copy_to_frontend(_instance, pressure, temperature); // it sets last_update_ms
 }
 
 // Calculate Temperature and compensated Pressure in real units (Celsius degrees*100, mbar*100).
