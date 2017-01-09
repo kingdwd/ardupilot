@@ -131,9 +131,10 @@ WARNFLAGS      +=   -Wno-error=pmf-conversions -Wno-error=missing-declarations -
 #OPTFLAGS        = -O0
 OPTFLAGS        = -Og
 #OPTFLAGS        = -Os
-OPTFLAGS       += -fsingle-precision-constant -g3 -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer 
-OPTFLAGS       += -fno-builtin-printf -fno-aggressive-loop-optimizations
-OPTFLAGS       += -ffast-math -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math -funsafe-math-optimizations 
+OPTFLAGS       += -fsingle-precision-constant -g3 -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer -fearly-inlining -fpredictive-commoning
+OPTFLAGS       += -fno-builtin-printf -fno-aggressive-loop-optimizations 
+#OPTFLAGS       += -ffast-math 
+OPTFLAGS       += -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math -funsafe-math-optimizations -fno-finite-math-only
 OPTFLAGS       += -finline-functions-called-once
 OPTFLAGS       += -finline-small-functions
 OPTFLAGS       += -fmerge-all-constants
@@ -172,7 +173,7 @@ GLOBAL_CFLAGS   := $(cpu_flags)
 #GLOBAL_CFLAGS   += -nostdlib           #Do not use the standard system startup files or libraries when linking
 GLOBAL_CFLAGS   += -Wall               #This enables all the warnings about constructions that some users consider questionable, and that are easy to avoid (or modify to prevent the warning), even in conjunction with macros
 GLOBAL_CFLAGS   += $(GLOBAL_FLAGS) $(OPTFLAGS)
-GLOBAL_CFLAGS   += -include $(WIRISH_PATH)/boards/$(BOARD)/board.h
+GLOBAL_CFLAGS   += -include $(WIRISH_PATH)/boards/$(BOARD)/board.h 
 
 
 # GLOBAL_CXXFLAGS ---------------------------------------------------------------------------------
