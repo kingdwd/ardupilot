@@ -238,6 +238,74 @@ void timer_disable(const timer_dev *dev) {
     }
 }
 
+
+// initial configuration - set required frequency (in kHz) and period (in ticks) 
+// returns real timers freq
+uint32_t configTimeBase(const timer_dev *dev , uint16_t period, uint16_t khz)
+{
+    TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+    TIM_TypeDef *tim = dev->regs;
+
+    timer_reset(dev);
+    timer_pause(dev);
+
+    dev->regs->CR1 = TIMER_CR1_ARPE;
+    dev->regs->PSC = 1;
+    dev->regs->SR = 0;
+    dev->regs->DIER = 0;
+    dev->regs->EGR = TIMER_EGR_UG;
+
+    TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
+
+    TIM_TimeBaseStructure.TIM_Period = (period - 1) & get_timer_mask(dev); // AKA TIMx_ARR
+    uint32_t freq = (uint32_t)khz * 1000;
+    uint16_t prescaler;
+    uint32_t tf;
+
+    if (tim == TIM1 || tim == TIM8 || tim == TIM9 || tim == TIM10 || tim == TIM11) {            // 168MHz
+        tf  = SystemCoreClock;
+    } else {                                                                                    // 84 MHz
+        tf  = SystemCoreClock / 2;
+    }
+
+    prescaler = ((tf + freq/4) / freq) - 1;
+    
+    TIM_TimeBaseStructure.TIM_Prescaler = prescaler;
+    freq = tf / prescaler;
+
+    TIM_TimeBaseStructure.TIM_ClockDivision = 0;
+    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(tim, &TIM_TimeBaseStructure);
+
+    switch (dev->type) {
+    case TIMER_ADVANCED:
+        dev->regs->BDTR = TIMER_BDTR_MOE | TIMER_BDTR_LOCK_OFF; //  break and dead-time register
+        // fall-through
+    case TIMER_GENERAL:
+
+        TIM_SelectOCxM(tim, TIM_Channel_1, TIM_OCMode_PWM1);    // set all channels to PWM mode
+        TIM_OC1PreloadConfig(tim, TIM_OCPreload_Enable);
+
+        TIM_SelectOCxM(tim, TIM_Channel_2, TIM_OCMode_PWM1);
+        TIM_OC2PreloadConfig(tim, TIM_OCPreload_Enable);
+
+        TIM_SelectOCxM(tim, TIM_Channel_3, TIM_OCMode_PWM1);
+        TIM_OC3PreloadConfig(tim, TIM_OCPreload_Enable);
+
+        TIM_SelectOCxM(tim, TIM_Channel_4, TIM_OCMode_PWM1);
+        TIM_OC4PreloadConfig(tim, TIM_OCPreload_Enable);
+        break;
+
+    case TIMER_BASIC:
+        break;
+    }
+
+    timer_set_count(dev,0);
+//    timer_resume(dev); - leave stopped to tune up later
+    
+    return freq;
+}
+
 /**
  * Sets the mode of an individual timer channel.
  *

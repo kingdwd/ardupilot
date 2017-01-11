@@ -147,8 +147,8 @@ void HAL_REVOMINI::run(int argc,char* const argv[], Callbacks* callbacks) const
      * up to the programmer to do this in the correct order.
      * Scheduler should likely come first. */
 
-    setupTimers(); // init all timers in Arduino_STM32 compatible mode, including Timer7 for Sheduler so it must be 1st
-    
+//    setupTimers(); // init all timers in Arduino_STM32 compatible mode, including Timer7 for Sheduler so it must be 1st
+
     scheduler->init();
 
     gpio->init();

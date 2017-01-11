@@ -69,11 +69,18 @@ void REVOMINIGPIO::_pinMode(uint8_t pin, uint8_t output)
         return;
     }
 
-    gpio_set_mode(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, outputMode);
 
-    if (pwm && PIN_MAP[pin].timer_device != NULL) {
-	GPIO_PinAFConfig(PIN_MAP[pin].gpio_device->GPIOx, PIN_MAP[pin].gpio_bit, PIN_MAP[pin].timer_device->af);
-	timer_set_mode(PIN_MAP[pin].timer_device, PIN_MAP[pin].timer_channel, TIMER_PWM);
+    const gpio_dev* dev = PIN_MAP[pin].gpio_device;
+    uint8_t bit = PIN_MAP[pin].gpio_bit;
+    const timer_dev * timer = PIN_MAP[pin].timer_device;
+
+    gpio_set_mode(dev, bit, outputMode);
+
+    if (pwm && timer != NULL) {
+        
+        gpio_set_speed(dev, bit, GPIO_Speed_25MHz);  // claenflight sets 2MHz
+	GPIO_PinAFConfig(dev->GPIOx, bit, timer->af);
+	timer_set_mode(timer, PIN_MAP[pin].timer_channel, TIMER_PWM); // init in setupTimers()
     }
 }
 

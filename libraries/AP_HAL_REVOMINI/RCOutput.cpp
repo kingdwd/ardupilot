@@ -1,7 +1,6 @@
 #include "RCOutput.h"
 #include "GPIO.h"
 
-extern const AP_HAL::HAL& hal;
 using namespace REVOMINI;
 
 /*
@@ -40,6 +39,17 @@ so to mimics Cleanflight motors should be changed as
 
 // #if FRAME_CONFIG == QUAD_FRAME // this is only QUAD layouts
 
+// OpenPilot
+static const uint8_t output_channels_openpilot[]= {  // pin assignment
+    46, //Timer3/3  - 1
+    45, //Timer3/4  - 2
+    50, //Timer2/3  - 3
+    49, //Timer2/2  - 4
+    48, //Timer2/1
+    47, //Timer2/0
+};
+
+#if 0  // don't works as needed
 // ArduCopter
 static const uint8_t output_channels_arducopter[]= {  // pin assignment
     50, //Timer2/3  - 3
@@ -50,15 +60,6 @@ static const uint8_t output_channels_arducopter[]= {  // pin assignment
     47, //Timer2/0
 };
 
-// OpenPilot
-static const uint8_t output_channels_openpilot[]= {  // pin assignment
-    46, //Timer3/3  - 1
-    45, //Timer3/4  - 2
-    50, //Timer2/3  - 3
-    49, //Timer2/2  - 4
-    48, //Timer2/1
-    47, //Timer2/0
-};
 
 // Cleanflight
 static const uint8_t output_channels_cleanflight[]= {  // pin assignment
@@ -72,15 +73,14 @@ static const uint8_t output_channels_cleanflight[]= {  // pin assignment
 
 // Arducopter,shifted 2 pins right to use up to 2 servos
 static const uint8_t output_channels_servo[]= {  // pin assignment
-    48, //Timer2/1  - 3
     50, //Timer2/3  - 1
-    47, //Timer2/0  - 4
     49, //Timer2/2  - 2
+    48, //Timer2/1  - 3
+    47, //Timer2/0  - 4
     46, //Timer3/3      servo1
     45, //Timer3/4      servo2
 };
 
-// #endif
 
 
 static const uint8_t * const revo_motor_map[]={
@@ -90,9 +90,22 @@ static const uint8_t * const revo_motor_map[]={
     output_channels_servo,
 };
 
+#endif
+
+// #endif
+
 static const uint8_t *output_channels = output_channels_openpilot;  // current pin assignment
 
+enum     REVOMINIRCOutput::output_mode REVOMINIRCOutput::_mode = REVOMINIRCOutput::MODE_PWM_NORMAL;
 
+uint16_t REVOMINIRCOutput::_period[REVOMINI_MAX_OUTPUT_CHANNELS] IN_CCM;
+uint16_t REVOMINIRCOutput::_enabled_channels;
+bool     REVOMINIRCOutput::_sbus_enabled;
+bool     REVOMINIRCOutput::_corked;
+bool     REVOMINIRCOutput::_need_update;
+uint8_t  REVOMINIRCOutput::_used_channels;
+
+uint32_t REVOMINIRCOutput::_timer_frequency[REVOMINI_MAX_OUTPUT_CHANNELS] IN_CCM;
 
 
 #define _BV(bit) (1U << (bit))
@@ -101,15 +114,24 @@ void REVOMINIRCOutput::init()
 {
     memset(&_period[0], 0, sizeof(_period));
 
+    set_output_mode(MODE_PWM_NORMAL); // init timers
+
+    // enamled only for OneShot
+    timer_disable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
+    timer_disable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
+
+    // interrupts to stop timer after pulse 
+    timer_attach_interrupt(TIMER2, TIMER_UPDATE_INTERRUPT, _timer2_isr_event, 9); //
+    timer_attach_interrupt(TIMER3, TIMER_UPDATE_INTERRUPT, _timer3_isr_event, 10); //
+
     _used_channels=0;
 }
 
 
 void REVOMINIRCOutput::lateInit(uint8_t map){ // 2nd stage with loaded parameters
     
-    if(map >= ARRAY_SIZE(revo_motor_map)) return; // don't initialize if parameter is wrong
-    
-    output_channels = revo_motor_map[map];
+//    if(map >= ARRAY_SIZE(revo_motor_map)) return; // don't initialize if parameter is wrong
+//    output_channels = revo_motor_map[map];
     
     InitPWM();
 }
@@ -117,7 +139,8 @@ void REVOMINIRCOutput::lateInit(uint8_t map){ // 2nd stage with loaded parameter
 void REVOMINIRCOutput::InitPWM()
 {
     for(uint8_t i = 0; i < REVOMINI_MAX_OUTPUT_CHANNELS && i < REVOMINI_OUT_CHANNELS; i++) {
-        REVOMINIGPIO::_pinMode(output_channels[i], PWM);
+        uint8_t pin = output_channels[i];
+        REVOMINIGPIO::_pinMode(pin, PWM);
     }
 }
 
@@ -126,6 +149,72 @@ uint32_t inline REVOMINIRCOutput::_timer_period(uint16_t speed_hz) {
 }
 
 
+void REVOMINIRCOutput::set_output_mode(enum REVOMINIRCOutput::output_mode mode) {
+
+    _mode=mode;
+    uint32_t period=0;
+    
+    // disable interrupt on any mode change
+    timer_disable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
+    timer_disable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
+    
+    switch(mode){
+    case MODE_PWM_NORMAL:
+// output uses timers 2 & 3 so let init them for PWM mode
+        period    = (2000000UL / 50) - 1; // 50Hz by default
+                     // dev    period   freq, kHz
+        configTimeBase(TIMER2, period,   2000);       // 2MHz 0.5us ticks - for 50..490Hz PWM
+        configTimeBase(TIMER3, period,   2000);       // 2MHz 0.5us ticks 
+        break;
+
+    case MODE_PWM_ONESHOT: // same as PWM but with manual restarting
+// output uses timers 2 & 3 so let init them for PWM mode
+        period    = (2000000UL / 50) - 1; // 50Hz by default
+                     // dev    period   freq, kHz
+        configTimeBase(TIMER2, period,   2000);       // 2MHz 0.5us ticks - for 50..490Hz PWM
+        configTimeBase(TIMER3, period,   2000);       // 2MHz 0.5us ticks 
+    
+        timer_enable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
+        timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
+        break;
+
+#if 0
+    case MODE_PWM_ONESHOT125:
+        period    = (2000000UL / 50) - 1; // 50Hz by default - manual restarting!
+                     // dev    period   freq, kHz
+        configTimeBase(TIMER2, period,  16000);       // 16MHz 62.5ns ticks - for 125uS..490Hz OneShot125
+        configTimeBase(TIMER3, period,  16000);       // 16MHz 62.5ns ticks 
+
+        
+        timer_enable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
+        timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
+        break;
+#endif
+
+    case MODE_PWM_BRUSHED16KHZ: 
+                     // dev    period   freq, kHz
+        configTimeBase(TIMER2, 1000,    16000);       // 16MHz  - 0..1 in 1000 steps
+        configTimeBase(TIMER3, 1000,    16000);       // 16MHz 
+        break;
+    }
+    timer_resume(TIMER2);
+    timer_resume(TIMER3);
+}
+
+// interrupts
+void REVOMINIRCOutput::_timer2_isr_event(TIM_TypeDef* t) {
+
+}
+
+void REVOMINIRCOutput::_timer3_isr_event(TIM_TypeDef* t) {
+
+}
+
+
+// for Oneshot125 
+// [1000;2000] => [125;250]
+// so frequency of timers should be 8 times more - 16MHz, but timers on 84MHz can give only 16.8MHz
+
 // channels 1&2, 3&4&5&6 can has a different rates
 void REVOMINIRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) {          
     uint32_t mask=1;
@@ -133,7 +222,7 @@ void REVOMINIRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) {
     for(uint8_t i=0; i< REVOMINI_OUT_CHANNELS; i++) { // кто последний тот и папа
         if(chmask & mask) {
             const timer_dev *dev = PIN_MAP[output_channels[i]].timer_device;
-            (dev->regs)->ARR =  _timer_period(freq_hz); 
+            timer_set_reload(dev,  _timer_period(freq_hz)); 
         }
         mask <<= 1;
     }
@@ -144,13 +233,11 @@ uint16_t REVOMINIRCOutput::get_freq(uint8_t ch) {
     
     const timer_dev *dev = PIN_MAP[output_channels[ch]].timer_device;
 
-    uint32_t icr = (dev->regs)->ARR;
-
     /* transform to period by inverse of _time_period(icr) */
-    return (uint16_t)(2000000UL / icr);
+    return (uint16_t)(2000000UL / timer_get_reload(dev));
 }
 
-/* constrain pwm to be between min and max pulsewidth. */
+/* constrain pwm to be between min and max pulsewidth */
 static inline uint16_t constrain_period(uint16_t p) {
     if (p > RC_INPUT_MAX_PULSEWIDTH) return RC_INPUT_MAX_PULSEWIDTH;
     if (p < RC_INPUT_MIN_PULSEWIDTH) return RC_INPUT_MIN_PULSEWIDTH;
@@ -177,7 +264,7 @@ void REVOMINIRCOutput::write(uint8_t ch, uint16_t period_us)
     if(_used_channels<ch) _used_channels=ch+1;
 
     
-    uint16_t pwm = constrain_period(period_us) << 1;
+    uint16_t pwm = constrain_period(period_us) << 1; // frequency of timers 2MHz
 
     if(_period[ch]==pwm) return; // already so
 
@@ -189,6 +276,7 @@ void REVOMINIRCOutput::write(uint8_t ch, uint16_t period_us)
 
     set_pwm(ch, pwm);
 }
+
 
 
 void REVOMINIRCOutput::write(uint8_t ch, uint16_t* period_us, uint8_t len)

@@ -42,6 +42,8 @@ public:
     
     static void    lateInit(uint8_t map); // 2nd stage with loaded parameters
     
+    void set_output_mode(enum output_mode mode) override;
+    
 /*
     void     set_safety_pwm(uint32_t chmask, uint16_t period_us) override;
     void     set_failsafe_pwm(uint32_t chmask, uint16_t period_us) override;
@@ -52,9 +54,6 @@ public:
         _esc_pwm_min = min_pwm;
         _esc_pwm_max = max_pwm;
     }
-    void push();
-
-    void set_output_mode(enum output_mode mode) override;
 
     void _timer_tick(void);
     bool enable_sbus_out(uint16_t rate_hz) override;
@@ -62,16 +61,21 @@ public:
 
 private:
     static void InitPWM(void);
-    void set_pwm(uint8_t ch, uint16_t pwm);
-    uint32_t _timer_period(uint16_t speed_hz);
-    uint16_t _period[REVOMINI_MAX_OUTPUT_CHANNELS];
-    uint16_t _enabled_channels;
-    enum output_mode _output_mode = MODE_PWM_NORMAL;
-    bool _sbus_enabled;
-    bool _corked;
-    bool _need_update;
-    void _init_alt_channels() {}// we don't has channels more than 8
-    uint8_t _used_channels;
+    static void set_pwm(uint8_t ch, uint16_t pwm);
+    static uint32_t _timer_period(uint16_t speed_hz);
+    static uint16_t _period[REVOMINI_MAX_OUTPUT_CHANNELS];
+    static uint16_t _enabled_channels;
+    static bool _sbus_enabled;
+    static bool _corked;
+    static bool _need_update;
+    static void _init_alt_channels() {}// we don't has channels more than 8
+    static uint8_t _used_channels;
+    static enum output_mode _mode;
+    
+    static uint32_t _timer_frequency[REVOMINI_MAX_OUTPUT_CHANNELS];
+    
+    static void _timer2_isr_event(TIM_TypeDef*);
+    static void _timer3_isr_event(TIM_TypeDef*);
 };
 
 #endif // __AP_HAL_REVOMINI_RCOUTPUT_H__

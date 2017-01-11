@@ -75,8 +75,9 @@ LIBRARIES_PATH   := $(BLDROOT)/libraries
 #FIRMWARE_PATH    := $(BLDROOT)/libraries/AP_HAL_REVOMINI/examples/DF_Parameters_test
 #SKETCH           := DF_Parameters_test
 
-FIRMWARE_PATH    := $(BLDROOT)/ArduCopter
-SKETCH           := ArduCopter
+#SKETCH           := ArduCopter
+
+FIRMWARE_PATH    := $(BLDROOT)/$(SKETCH)
 
 #FIRMWARE_PATH    := $(BLDROOT)/APMRover2
 #SKETCH          := APMRover2

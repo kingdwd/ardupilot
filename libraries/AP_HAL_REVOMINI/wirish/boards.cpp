@@ -108,12 +108,12 @@ inline static void setupNVIC() {
 static void timerDefaultConfig(timer_dev*);
 
 void setupTimers() {
-    timer_foreach(timerDefaultConfig);
+//    timer_foreach(timerDefaultConfig); - used configTimeBase() in respective places
 }
 
 
 static void timerDefaultConfig(timer_dev *dev) {
-
+#if 0
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
 
     timer_reset(dev);
@@ -132,8 +132,12 @@ static void timerDefaultConfig(timer_dev *dev) {
     case TIMER_GENERAL:
 	/* set period to 490 Hz as default */   
 	/* SystemCoreClock is set to 168 MHz for STM32F4xx devices */
-	if (dev->regs == TIM1 || dev->regs == TIM8 || dev->regs == TIM9 || dev->regs == TIM10 || dev->regs == TIM11){
-		/* Timer clock: 168 Mhz */
+
+// timer2 and timer3 - servo out
+// timer1 timer8 timer12 - input timers
+
+	if (dev->regs == TIM1 || dev->regs == TIM8 
+	 || dev->regs == TIM9 || dev->regs == TIM10 || dev->regs == TIM11){ 	/* Timer clock: 168 Mhz */
 		/* 
 		 * The objective is to generate PWM signal at 490 Hz 
 		 * The lowest possible prescaler is 5
@@ -141,8 +145,7 @@ static void timerDefaultConfig(timer_dev *dev) {
 		 */			
 		TIM_TimeBaseStructure.TIM_Prescaler = 5;
 		TIM_TimeBaseStructure.TIM_Period = 57141;
-	} else {
-		/* Timer clock: 84 Mhz */
+	} else {                                        		/* Timer clock: 84 Mhz */
 		/* 
 		 * The objective is to generate 2MHz 
 		 */
@@ -175,7 +178,10 @@ static void timerDefaultConfig(timer_dev *dev) {
     }
 
     timer_resume(dev);
+#endif
 }
+
+
 
 // 1st executing function
 

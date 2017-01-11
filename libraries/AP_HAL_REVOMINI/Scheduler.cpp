@@ -111,27 +111,19 @@ void REVOMINIScheduler::init()
 //    memset(_io_process, 0, sizeof(_io_process));
 
     uint32_t period    = (2000000UL / SHED_FREQ) - 1; 
-    uint32_t prescaler =  (uint16_t) ((SystemCoreClock /2) / 2000000UL) - 1; //2MHz 0.5us ticks
     
-    timer_pause(TIMER7);
-    timer_set_prescaler(TIMER7,prescaler);
-    timer_set_count(TIMER7,0);
-    timer_set_reload(TIMER7,period);
+                // dev    period   freq, kHz
+    configTimeBase(TIMER7, period, 2000);       //2MHz 0.5us ticks
     timer_attach_interrupt(TIMER7, TIMER_UPDATE_INTERRUPT, _timer_isr_event, 7); // low priority
     timer_resume(TIMER7);
 
-
-    period    = 0xffffffffUL; //(1000000UL / 1000) - 1; 
-    prescaler =  (uint16_t) ((SystemCoreClock /2) / 1000000UL) - 1; //1MHz 1us ticks
-
 // timer5 - 32-bit general timer, unused for other needs
 // so we can read micros32() directly from its counter and micros64() from counter and overflows
-    timer_pause(TIMER5);
-    timer_set_prescaler(TIMER5,prescaler);
+    configTimeBase(TIMER5, 0, 1000);       //1MHz 1us ticks
     timer_set_count(TIMER5,(1000000/SHED_FREQ)/2); // to not interfere with TIMER7
-    timer_set_reload(TIMER5,period);
     timer_attach_interrupt(TIMER5, TIMER_UPDATE_INTERRUPT, _timer5_ovf, 8); // lower priority
     timer_resume(TIMER5);
+
 
 
     // run standard Ardupilot tasks on 1kHz 
