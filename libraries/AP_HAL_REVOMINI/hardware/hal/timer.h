@@ -564,7 +564,7 @@ void timer_detach_interrupt(const timer_dev *dev, uint8_t interrupt);
 void timer_attach_all_interrupts(const timer_dev *dev,  TimerHandler handler);
 
 uint32_t configTimeBase(const timer_dev *dev , uint16_t period, uint16_t khz);
-inline uint32_t get_timer_mask(const timer_dev *dev){
+static inline uint32_t get_timer_mask(const timer_dev *dev){
     if(dev->regs == TIM2 || dev->regs == TIM5)
         return 0xFFFFFFFF;      // 32 bit
     else

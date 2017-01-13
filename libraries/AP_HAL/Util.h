@@ -2,6 +2,7 @@
 
 #include <stdarg.h>
 #include "AP_HAL_Namespace.h"
+#include "AP_HAL.h"
 
 class AP_HAL::Util {
 public:

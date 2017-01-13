@@ -107,6 +107,16 @@ uint8_t  REVOMINIRCOutput::_used_channels;
 
 uint32_t REVOMINIRCOutput::_timer_frequency[REVOMINI_MAX_OUTPUT_CHANNELS] IN_CCM;
 
+uint32_t REVOMINIRCOutput::_timer2_preload;
+uint16_t REVOMINIRCOutput::_timer3_preload;
+
+bool     REVOMINIRCOutput::_timer3_2flag=false;
+
+
+#define PWM_TIMER_KHZ 2000          // 1000 in cleanflight
+#define ONESHOT125_TIMER_KHZ 16000  // 8000 in cleanflight
+#define ONESHOT42_TIMER_KHZ  28000  // 24000 in cleanflight
+#define PWM_BRUSHED_TIMER_KHZ 16000 // 8000 in cleanflight
 
 #define _BV(bit) (1U << (bit))
 
@@ -120,8 +130,7 @@ void REVOMINIRCOutput::init()
     timer_disable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
     timer_disable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
 
-    // interrupts to stop timer after pulse 
-    timer_attach_interrupt(TIMER2, TIMER_UPDATE_INTERRUPT, _timer2_isr_event, 9); //
+    // interrupts to stop timer after pulse - 16-bit timer only
     timer_attach_interrupt(TIMER3, TIMER_UPDATE_INTERRUPT, _timer3_isr_event, 10); //
 
     _used_channels=0;
@@ -145,7 +154,16 @@ void REVOMINIRCOutput::InitPWM()
 }
 
 uint32_t inline REVOMINIRCOutput::_timer_period(uint16_t speed_hz) {
-    return (uint32_t)(2000000UL / speed_hz);
+    return (uint32_t)((PWM_TIMER_KHZ*1000UL) / speed_hz);
+}
+
+uint16_t REVOMINIRCOutput::get_freq(uint8_t ch) {
+    if(ch >= REVOMINI_OUT_CHANNELS) return 0;
+    
+    const timer_dev *dev = PIN_MAP[output_channels[ch]].timer_device;
+
+    /* transform to period by inverse of _time_period(icr) */
+    return (uint16_t)((PWM_TIMER_KHZ*1000UL) / timer_get_reload(dev));
 }
 
 
@@ -161,40 +179,67 @@ void REVOMINIRCOutput::set_output_mode(enum REVOMINIRCOutput::output_mode mode) 
     switch(mode){
     case MODE_PWM_NORMAL:
 // output uses timers 2 & 3 so let init them for PWM mode
-        period    = (2000000UL / 50) - 1; // 50Hz by default
+        period    = ((PWM_TIMER_KHZ*1000UL) / 50) - 1; // 50Hz by default
                      // dev    period   freq, kHz
-        configTimeBase(TIMER2, period,   2000);       // 2MHz 0.5us ticks - for 50..490Hz PWM
-        configTimeBase(TIMER3, period,   2000);       // 2MHz 0.5us ticks 
+        configTimeBase(TIMER2, period,  PWM_TIMER_KHZ);       // 2MHz 0.5us ticks - for 50..490Hz PWM
+        configTimeBase(TIMER3, period,  PWM_TIMER_KHZ);       // 2MHz 0.5us ticks 
         break;
+
+#if 0 // standard OneShot
 
     case MODE_PWM_ONESHOT: // same as PWM but with manual restarting
 // output uses timers 2 & 3 so let init them for PWM mode
-        period    = (2000000UL / 50) - 1; // 50Hz by default
+        period    = (uint32_t)-2; // max possible
                      // dev    period   freq, kHz
-        configTimeBase(TIMER2, period,   2000);       // 2MHz 0.5us ticks - for 50..490Hz PWM
-        configTimeBase(TIMER3, period,   2000);       // 2MHz 0.5us ticks 
+        configTimeBase(TIMER2, period,  PWM_TIMER_KHZ);       // 2MHz 0.5us ticks - for 50..490Hz PWM
+        configTimeBase(TIMER3, period,  PWM_TIMER_KHZ);       // 2MHz 0.5us ticks 
+
+        _timer2_preload = period-1;
+        _timer3_preload = period-1;
+        _timer3_2flag=false;
     
-        timer_enable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
-        timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
-        break;
+        timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT); // to stop timer on overflow. 32-bit TIMER2 will never overflows
+        return; // no resume
 
-#if 0
-    case MODE_PWM_ONESHOT125:
-        period    = (2000000UL / 50) - 1; // 50Hz by default - manual restarting!
+#else //MODE_PWM_ONESHOT125
+
+//    case MODE_PWM_ONESHOT125:
+    case MODE_PWM_ONESHOT:
+        period    = (uint32_t)-2; // maximal available - manual restarting!    
+//    at 16Mhz, period with 65536 will be 244Hz so even 16-bit timer will never overflows at 500Hz loop
+
                      // dev    period   freq, kHz
-        configTimeBase(TIMER2, period,  16000);       // 16MHz 62.5ns ticks - for 125uS..490Hz OneShot125
-        configTimeBase(TIMER3, period,  16000);       // 16MHz 62.5ns ticks 
+        configTimeBase(TIMER2, period,  ONESHOT125_TIMER_KHZ);       // 16MHz 62.5ns ticks - for 125uS..490Hz OneShot125
+        configTimeBase(TIMER3, period,  ONESHOT125_TIMER_KHZ);       // 16MHz 62.5ns ticks 
 
+        _timer2_preload = period-1;
+        _timer3_preload = period-1;
+        _timer3_2flag=false;
         
-        timer_enable_irq(TIMER2, TIMER_UPDATE_INTERRUPT);
         timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
-        break;
+        return; // no resume
+#endif
+#if 0
+    case MODE_PWM_ONESHOT42:
+        period    = (uint32_t)-2; // maximal available - manual restarting!
+//    at 28Mhz, period with 65536 will be 427Hz so even 16-bit timer should not overflows at 500Hz loop
+
+                     // dev    period   freq, kHz
+        configTimeBase(TIMER2, period,  ONESHOT42_TIMER_KHZ);       // 16MHz 62.5ns ticks - for 125uS..490Hz OneShot125
+        configTimeBase(TIMER3, period,  ONESHOT42_TIMER_KHZ);       // 16MHz 62.5ns ticks 
+
+        _timer2_preload = period-1;
+        _timer3_preload = period-1;
+        _timer3_2flag=false;
+        
+        timer_enable_irq(TIMER3, TIMER_UPDATE_INTERRUPT);
+        return; // no resume
 #endif
 
     case MODE_PWM_BRUSHED16KHZ: 
                      // dev    period   freq, kHz
-        configTimeBase(TIMER2, 1000,    16000);       // 16MHz  - 0..1 in 1000 steps
-        configTimeBase(TIMER3, 1000,    16000);       // 16MHz 
+        configTimeBase(TIMER2, 1000,    PWM_BRUSHED_TIMER_KHZ);       // 16MHz  - 0..1 in 1000 steps
+        configTimeBase(TIMER3, 1000,    PWM_BRUSHED_TIMER_KHZ);       // 16MHz 
         break;
     }
     timer_resume(TIMER2);
@@ -202,12 +247,14 @@ void REVOMINIRCOutput::set_output_mode(enum REVOMINIRCOutput::output_mode mode) 
 }
 
 // interrupts
-void REVOMINIRCOutput::_timer2_isr_event(TIM_TypeDef* t) {
-
-}
 
 void REVOMINIRCOutput::_timer3_isr_event(TIM_TypeDef* t) {
+    if(_timer3_2flag){
+        timer_pause(TIMER3);
 
+        timer_set_count(TIMER3,_timer3_preload);
+    }
+    _timer3_2flag = ! _timer3_2flag;
 }
 
 
@@ -219,6 +266,8 @@ void REVOMINIRCOutput::_timer3_isr_event(TIM_TypeDef* t) {
 void REVOMINIRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) {          
     uint32_t mask=1;
     
+    if(_mode != MODE_PWM_NORMAL) return; // no frequency in OneShoot or Brushed modes
+    
     for(uint8_t i=0; i< REVOMINI_OUT_CHANNELS; i++) { // кто последний тот и папа
         if(chmask & mask) {
             const timer_dev *dev = PIN_MAP[output_channels[i]].timer_device;
@@ -228,14 +277,6 @@ void REVOMINIRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) {
     }
 }
 
-uint16_t REVOMINIRCOutput::get_freq(uint8_t ch) {
-    if(ch >= REVOMINI_OUT_CHANNELS) return 0;
-    
-    const timer_dev *dev = PIN_MAP[output_channels[ch]].timer_device;
-
-    /* transform to period by inverse of _time_period(icr) */
-    return (uint16_t)(2000000UL / timer_get_reload(dev));
-}
 
 /* constrain pwm to be between min and max pulsewidth */
 static inline uint16_t constrain_period(uint16_t p) {
@@ -251,10 +292,23 @@ void REVOMINIRCOutput::set_pwm(uint8_t ch, uint16_t pwm){
 
     uint8_t pin = output_channels[ch];
     if (pin >= BOARD_NR_GPIO_PINS) return;
-    
+
+
+    switch(_mode){
+    case MODE_PWM_BRUSHED16KHZ:
+        pwm -= 1000; // move from 1000..2000 to 0..1000
+        break;
+/*
+    case MODE_PWM_ONESHOT42:
+        break;
+*/
+    default:
+        pwm <<= 1; // frequency of timers 2MHz or 16MHz 
+        break;
+    }
+
     const timer_dev *dev = PIN_MAP[pin].timer_device;
-    timer_set_compare(dev, PIN_MAP[pin].timer_channel, pwm);
-    TIM_Cmd(dev->regs, ENABLE);
+    timer_set_compare(dev, PIN_MAP[pin].timer_channel, pwm); 
 }
 
 void REVOMINIRCOutput::write(uint8_t ch, uint16_t period_us)
@@ -264,7 +318,7 @@ void REVOMINIRCOutput::write(uint8_t ch, uint16_t period_us)
     if(_used_channels<ch) _used_channels=ch+1;
 
     
-    uint16_t pwm = constrain_period(period_us) << 1; // frequency of timers 2MHz
+    uint16_t pwm = constrain_period(period_us);
 
     if(_period[ch]==pwm) return; // already so
 
@@ -292,15 +346,7 @@ uint16_t REVOMINIRCOutput::read(uint8_t ch)
 {
     if(ch>=REVOMINI_OUT_CHANNELS) return RC_INPUT_MIN_PULSEWIDTH;
 
-    uint16_t pin = output_channels[ch];
-
-    if (pin >= BOARD_NR_GPIO_PINS)
-        return RC_INPUT_MIN_PULSEWIDTH;
-    
-    const timer_dev *dev = PIN_MAP[pin].timer_device;
-
-    uint16_t pwm = timer_get_compare(dev, PIN_MAP[pin].timer_channel);
-    return pwm >> 1;
+    return _period[ch];
 }
 
 void REVOMINIRCOutput::read(uint16_t* period_us, uint8_t len)
@@ -340,15 +386,16 @@ void REVOMINIRCOutput::disable_ch(uint8_t ch)
     _period[ch] = PWM_IGNORE_THIS_CHANNEL;
     
 
-/*    uint8_t pin = output_channels[ch];
+    uint8_t pin = output_channels[ch];
     if (pin >= BOARD_NR_GPIO_PINS) return;
-    
+
+/*    
     const timer_dev *dev = PIN_MAP[pin].timer_device;
     TIM_Cmd(dev->regs, DISABLE);
 */  // we shouldn't disable ALL timer but only one pin, it will be better to change it's mode from PWM to output
 
-    REVOMINIGPIO::_pinMode(output_channels[ch], OUTPUT);
-    REVOMINIGPIO::_write(output_channels[ch], 0);
+    REVOMINIGPIO::_pinMode(pin, OUTPUT);
+    REVOMINIGPIO::_write(pin, 0);
 
 }
 
@@ -360,5 +407,14 @@ void REVOMINIRCOutput::push()
     for (uint16_t ch = 0; ch < _used_channels; ch++) {
         set_pwm(ch, _period[ch]);
     }
+
+    timer_pause(TIMER2);                     // stop timers
+    timer_pause(TIMER3); 
+
+    timer_set_count(TIMER2,_timer2_preload); // load a 3-step-back value to counters
+    timer_set_count(TIMER3,_timer3_preload);
+
+    timer_resume(TIMER2);                   // start timers again
+    timer_resume(TIMER3);
 }
 

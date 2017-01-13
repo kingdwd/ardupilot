@@ -6,13 +6,6 @@
 #include "AP_HAL_REVOMINI_Namespace.h"
 
 
-/*
-#include "io.h" // in wirish folder
-#include "gpio_hal.h"
-#include <boards.h>
-#include <ext_interrupts.h>
-#include <exti.h>
-*/
 #ifndef HIGH
  #define HIGH 0x1
 #endif

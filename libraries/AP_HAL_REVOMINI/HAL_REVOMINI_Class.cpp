@@ -26,27 +26,6 @@
 using namespace AP_HAL;
 using namespace REVOMINI;
 
-/*
-const AP_Param::GroupInfo HAL_REVOMINI::var_info[] = {
-
-    // @Param: MOTOR_LAYOUT
-    // @DisplayName: Motor layout scheme
-    // @Description: Selects how motors are numbered
-    // @Values: 0:ArduCopter,1:OpenPilot,2:CleanFlight
-    // @User: Advanced
-    AP_GROUPINFO("_MOTOR_LAYOUT", 0,  HAL_REVOMINI, _motor_layout, REVO_MOTORS_ARDUCOPTER),
-
-    // @Param: USE_SOFTSERIAL
-    // @DisplayName: Use SoftwareSerial driver
-    // @Description: Use SoftwareSerial driver instead SoftwareI2C on Input Port pins 7 & 8
-    // @Values: 0:disabled,1:enabled
-    // @User: Advanced
-    AP_GROUPINFO("_USE_SOFTSERIAL", 1,  HAL_REVOMINI, _use_softserial, 0),
-
-    AP_GROUPEND
-};
-
-*/
 
 static REVOMINI::I2CDeviceManager i2c_mgr_instance;
 
@@ -66,7 +45,7 @@ static REVOMINIUARTDriver uart4Driver(_UART4);  // pin 5&6 of servo port
 static SerialDriver softDriver(false);  // pin 7&8 of input port
 #endif
 
-// only for DCM satellite, served in rc_input
+// only for DSM satellite, served in rc_input
 //static REVOMINIUARTDriver uart5Driver(_UART5,0);  // D26/PD2  6 EXTI_RFM22B / UART5_RX  input-only UART for DSM satellite
 
 /*
@@ -155,7 +134,6 @@ void HAL_REVOMINI::run(int argc,char* const argv[], Callbacks* callbacks) const
 
     rcout->init(); 
 
-
     extern void usb_init();
     usb_init(); // moved from boards.cpp
 
@@ -190,11 +168,11 @@ void HAL_REVOMINI::run(int argc,char* const argv[], Callbacks* callbacks) const
 
 
 void HAL_REVOMINI::lateInit(){
-//    AP_Param::setup_object_defaults(this, var_info); // setup all params
     
 //    REVOMINIRCOutput::lateInit(_motor_layout); // 2nd stage - now with loaded parameters
     REVOMINIRCOutput::lateInit(1); // 2nd stage - now with loaded parameters
 }
+
 
 //const HAL_REVOMINI AP_HAL_REVOMINI;
 

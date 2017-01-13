@@ -25,7 +25,6 @@
 
 //#pragma GCC pop_options
 
-
 #define SOFT_SPI 1
 
 
@@ -33,9 +32,7 @@ using namespace REVOMINI;
 
 
 static const SPIDesc spi_device_table[] = {    // TODO: different SPI tables per board subtype
-    //          name           device bus   mode          cs_pin               speed_low       speed_high
-    { HAL_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, MPU6000_CS_PIN,         SPI_1_125MHZ,   SPI_18MHZ }, // 400ns SCK time
-    { HAL_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
+    BOARD_SPI_DEVICES
 };
 
 #define REVOMINI_SPI_DEVICE_NUM_DEVICES (sizeof(spi_device_table)/sizeof(SPIDesc))

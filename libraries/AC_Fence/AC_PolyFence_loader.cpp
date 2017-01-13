@@ -1,4 +1,5 @@
 #include "AC_PolyFence_loader.h"
+#include <StorageManager/StorageManager.h>
 
 extern const AP_HAL::HAL& hal;
 

@@ -74,8 +74,13 @@ private:
     
     static uint32_t _timer_frequency[REVOMINI_MAX_OUTPUT_CHANNELS];
     
-    static void _timer2_isr_event(TIM_TypeDef*);
     static void _timer3_isr_event(TIM_TypeDef*);
+
+    static uint32_t _timer2_preload;
+    static uint16_t _timer3_preload;
+
+    static bool _timer3_2flag;
+
 };
 
 #endif // __AP_HAL_REVOMINI_RCOUTPUT_H__

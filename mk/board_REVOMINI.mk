@@ -269,7 +269,7 @@ SLIB_INCLUDES  =       -I$(dir $<)/utility $(SKETCHLIBINCLUDES) $(ARDUINOLIBINCL
 
 
 # Library object files
-LIBOBJS			:=	$(SKETCHLIBOBJS) $(COREOBJS)
+LIBOBJS			:=	$(SKETCHLIBOBJS)
 
 # The ELF file
 SKETCHELF		=	$(BUILDROOT)/$(SKETCH).elf
@@ -360,7 +360,14 @@ revomini-clean: clean
 # Link the final object
 $(SKETCHELF):	$(LIBOBJS) $(SKETCHOBJS) $(TGT_BIN) $(BUILD_PATH)/main.o
 #	@echo LIBOBJS=$(LIBOBJS)
-	@echo TGT_BIN=$(TGT_BIN)
+#	@echo TGT_BIN=$(TGT_BIN)
+	@echo LIBRARIES=$(LIBRARIES)  
+	@echo SKETCHLIBS=$(SKETCHLIBS) 
+	@echo SKETCHLIBSRCDIRS=$(SKETCHLIBSRCDIRS) 
+	@echo SKETCHLIBSRCS=$(SKETCHLIBSRCS) 
+
+#       @echo LIBOBJS=$(LIBOBJS) 
+	
 	$(RULEHDR)
 #	$(v)$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 	$(SILENT_LD) $(CXX) $(LDFLAGS) -o $@ $(TGT_BIN) $(BUILD_PATH)/main.o $(SKETCHOBJS) $(LIBOBJS) $(LIBS) $(LIBGCC)  -Wl,-Map,$(BUILD_PATH)/$(BOARD).map

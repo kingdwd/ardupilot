@@ -84,5 +84,41 @@
 
 #define BOARD_NR_GPIO_PINS      108
 
+// motor layouts
+#define REVO_MOTORS_ARDUCOPTER 0
+#define REVO_MOTORS_OPENPILOT 1
+#define REVO_MOTORS_CLEANFLIGHT 2
 
+
+   //                                 name            device   bus  mode         cs_pin                 speed_low       speed_high
+#define BOARD_SPI_DEVICES    { HAL_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, MPU6000_CS_PIN,         SPI_1_125MHZ,   SPI_18MHZ }, \
+                             { HAL_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
+
+
+/*
+
+    // @Param: MOTOR_LAYOUT
+    // @DisplayName: Motor layout scheme
+    // @Description: Selects how motors are numbered
+    // @Values: 0:ArduCopter,1:OpenPilot,2:CleanFlight
+    // @User: Advanced
+    AP_GROUPINFO("_MOTOR_LAYOUT", 0,  HAL_REVOMINI, _motor_layout, REVO_MOTORS_ARDUCOPTER),
+
+    // @Param: USE_SOFTSERIAL
+    // @DisplayName: Use SoftwareSerial driver
+    // @Description: Use SoftwareSerial driver instead SoftwareI2C on Input Port pins 7 & 8
+    // @Values: 0:disabled,1:enabled
+    // @User: Advanced
+    AP_GROUPINFO("_USE_SOFTSERIAL", 1,  HAL_REVOMINI, _use_softserial, 0),
+
+*/
+#define BOARD_HAL_VARINFO \
+    AP_GROUPINFO("_MOTOR_LAYOUT", 0,  AP_Param_Helper, _motor_layout, REVO_MOTORS_ARDUCOPTER), \
+    AP_GROUPINFO("_USE_SOFTSERIAL", 1, AP_Param_Helper, _use_softserial, 0)
+
+// parameters
+#define BOARD_HAL_PARAMS \
+    AP_Int8 _motor_layout; \
+    AP_Int8 _use_softserial;
+    
 #endif
