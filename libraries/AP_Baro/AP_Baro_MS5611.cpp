@@ -271,8 +271,7 @@ bool AP_Baro_MS56XX::_timer(void)
     uint8_t next_cmd;
     uint8_t next_state;
 
-    if (!_sem->take_nonblocking()) 
-        return true;
+    if (!_sem->take_nonblocking())  return false; // reschedule at next tick
 
     uint32_t adc_val = _read_adc();
 
@@ -340,7 +339,7 @@ void AP_Baro_MS56XX::update()
     volatile uint32_t sD1, sD2;
     volatile uint8_t d1count, d2count; // if this vars are not volatile then compiler optimizes it out and uses directly _accum 
 
-    if (!_sem->take(0)) {
+    if (!_sem->take(5)) {
         return;
     }
 

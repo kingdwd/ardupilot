@@ -504,12 +504,13 @@ static INLINE  void dispatch_single_irq(const timer_dev *dev,
     
     uint32_t dsr = dev->regs->DIER & dev->regs->SR & irq_mask;
     if (dsr) {
-        dev->regs->SR &= ~dsr;  // reset IRQ inspite of installed handler! @NG
 
         TimerHandler handler = (dev->handlers)[iid];
         if (handler) {
             handler(dev->regs);
         }
+
+        dev->regs->SR &= ~dsr;  // reset IRQ inspite of installed handler! @NG
         
     }
 }
@@ -555,10 +556,11 @@ static inline void dispatch_adv_trg_com(const timer_dev *dev) {
                              * must clear overcapture flags, to avoid
                              * wasting time in output mode. */
 
-    dev->regs->SR &= ~dsr;     // handled ALL enabled interrupts! BEFORE ISR itself!
 
     handle_irq(dev, dsr, TIMER_SR_TIF,   TIMER_TRG_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_COMIF, TIMER_COM_INTERRUPT);
+
+    dev->regs->SR &= ~dsr;     // handled ALL enabled interrupts! BEFORE ISR itself!
 
 #ifdef ISR_PERF
     isr_time += systick_micros() - t;
@@ -571,12 +573,13 @@ static inline void dispatch_adv_cc(const timer_dev *dev) {
 #endif
 
     uint32_t dsr = dev->regs->DIER & dev->regs->SR;
-    dev->regs->SR &= ~dsr;      // handled ALL enabled interrupts! BEFORE ISR itself!
     
     handle_irq(dev, dsr, TIMER_SR_CC4IF, TIMER_CC4_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_CC3IF, TIMER_CC3_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_CC2IF, TIMER_CC2_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_CC1IF, TIMER_CC1_INTERRUPT);
+
+    dev->regs->SR &= ~dsr;      // handled ALL enabled interrupts! BEFORE ISR itself!
 
 #ifdef ISR_PERF
     isr_time += systick_micros() - t;
@@ -590,7 +593,6 @@ static inline void dispatch_general(const timer_dev *dev) {
 
     uint32_t dsr = dev->regs->DIER & dev->regs->SR;
 
-    dev->regs->SR &= ~dsr; // handled ALL enabled interrupts! BEFORE ISR itself!
 
     handle_irq(dev, dsr, TIMER_SR_TIF,   TIMER_TRG_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_CC4IF, TIMER_CC4_INTERRUPT);
@@ -598,6 +600,8 @@ static inline void dispatch_general(const timer_dev *dev) {
     handle_irq(dev, dsr, TIMER_SR_CC2IF, TIMER_CC2_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_CC1IF, TIMER_CC1_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_UIF,   TIMER_UPDATE_INTERRUPT);
+
+    dev->regs->SR &= ~dsr; // handled ALL enabled interrupts! BEFORE ISR itself!
 
 #ifdef ISR_PERF
     isr_time += systick_micros() - t;
@@ -611,12 +615,13 @@ static inline void dispatch_general_h(const timer_dev *dev) {
 #endif
 
     uint32_t dsr = dev->regs->DIER & dev->regs->SR;
-    dev->regs->SR &= ~dsr; // handled ALL enabled interrupts! BEFORE ISR itself!
 
     handle_irq(dev, dsr, TIMER_SR_TIF,   TIMER_TRG_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_CC2IF, TIMER_CC2_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_CC1IF, TIMER_CC1_INTERRUPT);
     handle_irq(dev, dsr, TIMER_SR_UIF,   TIMER_UPDATE_INTERRUPT);
+
+    dev->regs->SR &= ~dsr; // handled ALL enabled interrupts! BEFORE ISR itself!
 
 #ifdef ISR_PERF
     isr_time += systick_micros() - t;

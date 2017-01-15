@@ -948,7 +948,7 @@ const AP_Param::Info Copter::var_info[] = {
 
     // @Group: HAL_
     // @Path: ../libraries/AP_HAL_REVOMINI/HAL_REVOMINI_Class.cpp
-    GOBJECT(chal, "HAL", AP_Param_Helper),
+    GOBJECT(chal, "HAL_", AP_Param_Helper),
 
     // @Group: 
     // @Path: Parameters.cpp

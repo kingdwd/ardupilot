@@ -227,12 +227,15 @@ errout:
  */
 bool AP_Compass_HMC5843::_timer()
 {
+    if (!_sem->take_nonblocking()) return false; // reschedule at next tick
+
     bool result = _read_sample();
 
     // always ask for a new sample
     _take_sample();
     
     if (!result) {
+        _sem->give();
         return true;
     }
 
@@ -261,7 +264,6 @@ bool AP_Compass_HMC5843::_timer()
     // correct raw_field for known errors
     correct_field(raw_field, _compass_instance);
     
-    if (_sem->take_nonblocking()) {
         _mag_x_accum += raw_field.x;
         _mag_y_accum += raw_field.y;
         _mag_z_accum += raw_field.z;
@@ -273,7 +275,7 @@ bool AP_Compass_HMC5843::_timer()
             _accum_count = 7;
         }
         _sem->give();
-    }
+    
     
     return true;
 }

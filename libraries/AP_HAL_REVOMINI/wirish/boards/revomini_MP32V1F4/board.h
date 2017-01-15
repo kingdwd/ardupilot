@@ -113,8 +113,8 @@
 
 */
 #define BOARD_HAL_VARINFO \
-    AP_GROUPINFO("_MOTOR_LAYOUT", 0,  AP_Param_Helper, _motor_layout, REVO_MOTORS_ARDUCOPTER), \
-    AP_GROUPINFO("_USE_SOFTSERIAL", 1, AP_Param_Helper, _use_softserial, 0)
+    AP_GROUPINFO("MOTOR_LAYOUT", 0,  AP_Param_Helper, _motor_layout, REVO_MOTORS_ARDUCOPTER), \
+    AP_GROUPINFO("SOFTSERIAL", 1, AP_Param_Helper, _use_softserial, 0)
 
 // parameters
 #define BOARD_HAL_PARAMS \

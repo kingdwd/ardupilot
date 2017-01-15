@@ -143,6 +143,8 @@ void REVOMINIRCInput::rxIntRC(uint16_t value0, uint16_t value1, bool state)
 
 
 void REVOMINIRCInput::parse_pulses(){
+//    add_dsm_uart_input();
+
     static Pulse last_p={0,0};
     
     while(!pb_is_empty(&pulses)){
@@ -392,8 +394,8 @@ void REVOMINIRCInput::init() {
     REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_ON);
 
     // initialize DSM UART
-    uartSDriver.setCallback(add_dsm_uart_input);
     uartSDriver.begin(115200);
+    uartSDriver.setCallback(add_dsm_uart_input);
 
 /* OPLINK AIR port pinout
 1       2       3       4       5       6       7

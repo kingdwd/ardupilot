@@ -526,7 +526,8 @@ void REVOMINIScheduler::_run_timers(){
                 if(ret) {  // reschedule
                     _timers[i].last_run    += _timers[i].period; // прошлое время запуска - по надобности а не по факту
                 } else {
-                    _timers[i].proc = 0L;               // cancel task
+// all callee never returns false to unregister itself so we can use it as flag to simply reschedule
+//                    _timers[i].proc = 0L;               // cancel task
                 }
 
                 now = _micros();

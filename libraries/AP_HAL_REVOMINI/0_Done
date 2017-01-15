@@ -24,6 +24,8 @@
 * all internal calls use static private methods
 * removed unused files from "wirish" folder
 * micros() call uses 32-bit hardware timer instead of systick_micros()
+* added parameters support for HAL
+* OneShot supported
 * ...
 * a lot of minor enhancements
 

@@ -185,6 +185,10 @@ const struct TIM_Channel PWM_Channels[] =   {
 struct PWM_State Inputs[PWM_CHANNELS] IN_CCM;
 
 
+//#pragma GCC push_options
+//#pragma GCC optimize ("O0")
+
+
 static void pwmIRQHandler(TIM_TypeDef *tim){
 #ifdef ISR_PERF
     uint32_t t=systick_micros();
@@ -354,12 +358,6 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 	    // gpio_set_af_mode *************************************************************/
 	    GPIO_PinAFConfig(channel->gpio_port, channel->gpio_af,  channel->gpio_af_tim);
 	    
-	    // enable the TIM global interrupt
-	    NVIC_InitStructure.NVIC_IRQChannel = channel->tim_irq;
-	    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-	    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-	    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	    NVIC_Init(&NVIC_InitStructure);
 	    // TIM configuration base *******************************************************/
 
 	    
@@ -384,10 +382,19 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 	    TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
 	    TIM_ICInitStructure.TIM_ICFilter = 0x0;
 	    TIM_ICInit(channel->tim, &TIM_ICInitStructure);
-	    // timer_enable *****************************************************************/
-	    TIM_Cmd(channel->tim, ENABLE);
 	    // enable the CC interrupt request **********************************************/
 	    TIM_ITConfig(channel->tim, channel->tim_cc, ENABLE);
+
+	    // enable the TIM global interrupt
+	    NVIC_InitStructure.NVIC_IRQChannel = channel->tim_irq;
+	    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
+	    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	    NVIC_Init(&NVIC_InitStructure);
+
+	    // timer_enable *****************************************************************/
+	    TIM_Cmd(channel->tim, ENABLE);
+
 	}
     }  else { // ppm mode
 
@@ -395,7 +402,7 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 
 	const struct TIM_Channel *channel = &PWM_Channels[0];
 	
-	timer_attach_all_interrupts(TIMER12, pwmIRQHandler); // TIM8 and TIM12 share one IRQ so to use TIM12 without TIM8 we MUST use timer's driver
+	timer_attach_all_interrupts(channel->timer, pwmIRQHandler); // TIM8 and TIM12 share one IRQ so to use TIM12 without TIM8 we MUST use timer's driver
 	
 	// timer_reset ******************************************************************/
 	channel->tim_clkcmd(channel->tim_clk, ENABLE);
@@ -404,30 +411,39 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 	TIM_Cmd(channel->tim, DISABLE);
 	// gpio_set_mode ****************************************************************/
 	channel->gpio_clkcmd(channel->gpio_clk, ENABLE);
+
+        channel->tim->CR1 = TIMER_CR1_ARPE;
+        channel->tim->PSC = 1;
+        channel->tim->SR = 0;
+        channel->tim->DIER = 0;
+        channel->tim->EGR = TIMER_EGR_UG;
+
 	GPIO_InitStructure.GPIO_Pin = channel->gpio_pin;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_Init(channel->gpio_port, &GPIO_InitStructure);
+
 	
-	// gpio_set_af_mode *************************************************************/
-	GPIO_PinAFConfig(channel->gpio_port, channel->gpio_af, channel->gpio_af_tim);
-	
+/*
 	// enable the TIM global interrupt
 	NVIC_InitStructure.NVIC_IRQChannel = channel->tim_irq;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
+*/
+        NVIC_EnableIRQ(channel->tim_irq);
+        NVIC_SetPriority(channel->tim_irq,2);	
 	
 	// TIM configuration base *******************************************************/
 	TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
 
 	if (channel->tim == TIM1 || channel->tim == TIM8 || channel->tim == TIM9 || channel->tim == TIM10 || channel->tim == TIM11){
-	    TIM_TimeBaseStructure.TIM_Prescaler = 83; //200KHz
+	    TIM_TimeBaseStructure.TIM_Prescaler = 84-1; //2MHz
 	}else{
-	    TIM_TimeBaseStructure.TIM_Prescaler = 41; //200KHz
+	    TIM_TimeBaseStructure.TIM_Prescaler = 42-1; //2MHz
 	}
         TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -442,10 +458,16 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 	TIM_ICInitStructure.TIM_ICPrescaler = TIM_ICPSC_DIV1;
 	TIM_ICInitStructure.TIM_ICFilter = 0x0;
 	TIM_ICInit(channel->tim, &TIM_ICInitStructure);
+
 	// timer_enable *****************************************************************/
 	TIM_Cmd(channel->tim, ENABLE);
+
 	// enable the CC interrupt request **********************************************/
 	TIM_ITConfig(channel->tim, channel->tim_cc, ENABLE);
+
+	// connect pin to timer -  gpio_set_af_mode *************************************************************/
+	GPIO_PinAFConfig(channel->gpio_port, channel->gpio_af, channel->gpio_af_tim);
+
     }
 }
 
