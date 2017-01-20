@@ -506,18 +506,6 @@ uint16_t EEPROMClass::erases(uint16_t *Erases)
 	return EEPROM_OK;
 }
 
-/**
-  * @brief	Returns the last stored variable data, if found,
-  *			which correspond to the passed virtual address
-  * @param  Address: Variable virtual address
-  * @retval Data for variable or EEPROM_DEFAULT_DATA, if any errors
-  */
-uint16_t EEPROMClass::read (uint16_t Address)
-{
-	uint16_t data;
-	read(Address, &data);
-	return data;
-}
 
 /**
   * @brief	Returns the last stored variable data, if found,
@@ -606,10 +594,6 @@ uint16_t EEPROMClass::count(uint16_t *Count)
 	return EEPROM_OK;
 }
 
-uint16_t EEPROMClass::maxcount(void)
-{
-	return ((PageSize / 4)-1);
-}
 
 EEPROMClass EEPROM;
 #endif

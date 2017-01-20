@@ -20,6 +20,7 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 
 #include <AP_HAL/AP_HAL.h>
+#include "AP_HAL_REVOMINI_Namespace.h"
 #include "AnalogIn.h"
 #include <adc.h>
 #include <boards.h>
@@ -43,9 +44,9 @@ void REVOMINIAnalogIn::init() {
 
 //    setupADC(); // init and enable all ADC - individually
 
-    /* Register REVOMINIAnalogIn::_timer_event with the scheduler. */
+    // Register _timer_event in the scheduler. 
     hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&REVOMINIAnalogIn::_timer_event,void));
-    /* Register each private channel with REVOMINIAnalogIn. */
+    // Register each private channel with REVOMINIAnalogIn. 
     _register_channel(&_vcc);
     
     cnv_started=false;
@@ -66,11 +67,11 @@ void REVOMINIAnalogIn::_register_channel(REVOMINIAnalogSource* ch) {
 
 //    hal.console->printf("Register Channel:%u on pin:%u \n", _num_channels, ch->_pin );
 
-    /* Need to lock to increment _num_channels as it is used
-     * by the interrupt to access _channels */
-    noInterrupts();
+    // *NO* need to lock to increment _num_channels INSPITE OF it is used by the interrupt to access _channels 
+    // because we first fill _channels[]
+//    noInterrupts();
     _num_channels++;
-    interrupts();
+//    interrupts();
 }
 
 
@@ -89,9 +90,10 @@ void REVOMINIAnalogIn::_timer_event(void)
     }
 
     if (cnv_started && !(dev->adcx->SR & ADC_SR_EOC))	{
-//    if (cnv_started && (ADC_GetFlagStatus(dev->adcx, ADC_FLAG_EOC) == RESET))	{
-	    /* ADC Conversion is still running - this should not happen, as we
-	     * are called at 1khz. */
+	    // ADC Conversion is still running - this should not happen, as we are called at 1khz.
+	    // SO - more likely we forget to start conversion or some went wrong...
+	    // let's fix it
+	    ADC_SoftwareStartConv(dev->adcx);
 	    return;
     }
 
@@ -110,6 +112,7 @@ void REVOMINIAnalogIn::_timer_event(void)
         /* Give the active channel a new sample */
         _channels[_active_channel]->new_sample( sample );
     }
+    
 next_channel:
     /* stop the previous channel, if a stop pin is defined */
     _channels[_active_channel]->stop_read();

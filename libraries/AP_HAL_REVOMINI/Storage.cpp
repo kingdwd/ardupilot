@@ -65,6 +65,10 @@ void REVOMINIStorage::init()
     eeprom.init(pageBase1, pageBase0, pageSize);
 }
 
+void REVOMINIStorage::format_eeprom(void) {  
+    eeprom.format(); 
+}
+
 uint8_t REVOMINIStorage::read_byte(uint16_t loc){
 
     // 'bytes' are packed 2 per word
@@ -86,11 +90,6 @@ uint16_t REVOMINIStorage::read_word(uint16_t loc){
     return value;
 }
 
-uint32_t REVOMINIStorage::read_dword(uint16_t loc){
-    uint32_t value;
-    read_block(&value, loc, sizeof(value));
-    return value;
-}
 
 void REVOMINIStorage::read_block(void* dst, uint16_t loc, size_t n) {
     // Treat as a block of bytes
@@ -139,10 +138,7 @@ void REVOMINIStorage::write_word(uint16_t loc, uint16_t value)
         eeprom.write(loc >> 1, value);                  // по четному сразу словом
 }
 
-void REVOMINIStorage::write_dword(uint16_t loc, uint32_t value)
-{
-    write_block(loc, &value, sizeof(value));
-}
+
 
 void REVOMINIStorage::write_block(uint16_t loc, const void* src, size_t n)
 {
@@ -166,11 +162,6 @@ void REVOMINIStorage::write_block(uint16_t loc, const void* src, size_t n)
         ptr_b=(uint8_t *)ptr_w;
         write_byte(loc, *ptr_b);      // odd byte
     }
-}
-
-void REVOMINIStorage::format_eeprom(void)
-{
-    eeprom.format();
 }
 
 #endif

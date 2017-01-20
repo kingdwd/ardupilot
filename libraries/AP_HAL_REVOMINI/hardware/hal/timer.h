@@ -38,6 +38,8 @@
 #include "hal.h"
 #include "bitband.h"
 
+#define BOARD_PWM_MODE TIM_OCMode_PWM1
+
 /**
  * @brief Timer type
  *
@@ -424,6 +426,11 @@ typedef enum timer_channel {
     TIMER_CH4 = 4  /**< Channel 4 */
 } timer_channel;
 
+enum {
+    TIMER_OUTPUT_ENABLED  = 0x01,
+    TIMER_OUTPUT_INVERTED = 0x02,
+    TIMER_OUTPUT_N_CHANNEL= 0x04
+};
 
 #ifdef __cplusplus
 #define CONSTEXPR constexpr
@@ -559,11 +566,15 @@ void timer_disable(const timer_dev *dev);
 void timer_set_mode(const timer_dev *dev, uint8_t channel, timer_mode mode);
 void timer_foreach(void (*fn)(const timer_dev*));
 
+void pwmOCConfig(const timer_dev *dev, uint8_t channel, uint8_t flags);
+
 void timer_attach_interrupt(const timer_dev *dev, uint8_t interrupt, TimerHandler handler, uint8_t priority);
 void timer_detach_interrupt(const timer_dev *dev, uint8_t interrupt);
 void timer_attach_all_interrupts(const timer_dev *dev,  TimerHandler handler);
 
 uint32_t configTimeBase(const timer_dev *dev , uint16_t period, uint16_t khz);
+
+
 static inline uint32_t get_timer_mask(const timer_dev *dev){
     if(dev->regs == TIM2 || dev->regs == TIM5)
         return 0xFFFFFFFF;      // 32 bit
@@ -1035,50 +1046,6 @@ static inline void timer_dma_set_base_addr(const timer_dev *dev,
 /**
  * Timer output compare modes.
  */
-#if 0
-typedef enum timer_oc_mode {
-    TIMER_OC_MODE_FROZEN = 0 << 4, /**< Frozen: comparison between output
-                                      compare register and counter has no
-                                      effect on the outputs. */
-    TIMER_OC_MODE_ACTIVE_ON_MATCH = 1 << 4, /**< OCxREF signal is forced
-                                               high when the count matches
-                                               the channel capture/compare
-                                               register. */
-    TIMER_OC_MODE_INACTIVE_ON_MATCH = 2 << 4, /**< OCxREF signal is forced
-                                                 low when the counter matches
-                                                 the channel capture/compare
-                                                 register. */
-    TIMER_OC_MODE_TOGGLE = 3 << 4, /**< OCxREF toggles when counter
-                                      matches the cannel capture/compare
-                                      register. */
-    TIMER_OC_MODE_FORCE_INACTIVE = 4 << 4, /**< OCxREF is forced low. */
-    TIMER_OC_MODE_FORCE_ACTIVE = 5 << 4, /**< OCxREF is forced high. */
-    TIMER_OC_MODE_PWM_1 = 6 << 4, /**< PWM mode 1.  In upcounting, channel is
-                                     active as long as count is less than
-                                     channel capture/compare register, else
-                                     inactive.  In downcounting, channel is
-                                     inactive as long as count exceeds
-                                     capture/compare register, else
-                                     active. */
-    TIMER_OC_MODE_PWM_2 = 7 << 4  /**< PWM mode 2. In upcounting, channel is
-                                     inactive as long as count is less than
-                                     capture/compare register, else active.
-                                     In downcounting, channel is active as
-                                     long as count exceeds capture/compare
-                                     register, else inactive. */
-} timer_oc_mode;
-
-
-/**
- * Timer output compare mode flags.
- * @see timer_oc_set_mode()
- */
-typedef enum timer_oc_mode_flags {
-    TIMER_OC_CE = BIT(7),       /**< Output compare clear enable. */
-    TIMER_OC_PE = BIT(3),       /**< Output compare preload enable. */
-    TIMER_OC_FE = BIT(2)        /**< Output compare fast enable. */
-} timer_oc_mode_flags;
-#endif
 
 /**
  * @brief Configure a channel's output compare mode.
@@ -1108,16 +1075,6 @@ static inline void timer_oc_set_mode(const timer_dev *dev,
 }
 
 /*
-TIMER_OC_MODE_ACTIVE_ON_MATCH   	TIM_OCMode_Active
-TIMER_OC_MODE_INACTIVE_ON_MATCH 	TIM_OCMode_Inactive
-TIMER_OC_MODE_TOGGLE			TIM_OCMode_Toggle
-TIMER_OC_MODE_PWM_1			TIM_OCMode_PWM1
-TIMER_OC_MODE_PWM_2			TIM_OCMode_PWM2
-
-TIMER_OC_FE 				TIM_OCFast_Enable		TIM_OC1FastConfig
-TIMER_OC_PE				TIM_OCPreload_Enable 	TIM_OC1PreloadConfig
-TIMER_OC_CE				TIM_OCClear_Enable		TIM_ClearOC1Ref
-
 
 Note2: In case of PWM mode, this function is mandatory:
 00646               TIM_OCxPreloadConfig(TIMx, TIM_OCPreload_ENABLE); 

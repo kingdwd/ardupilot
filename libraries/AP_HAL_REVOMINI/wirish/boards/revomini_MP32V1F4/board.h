@@ -24,7 +24,7 @@
 #define BOARD_RFM22B_CS_PIN     103 // PA15 CS_RFM22B
 #define BOARD_RFM22B_INT_PIN    26  // PD2
 
-#define BUZZER_PIN              5 // PB15, PWM2
+#define BOARD_BUZZER_PIN        5 // PB15, PWM2
 
 
 #define BOARD_NR_USARTS         5
@@ -64,7 +64,7 @@
 
 #define BOARD_HMC5883_DRDY_PIN  38  // PB7 - but it not used by driver
 
-#define MPU6000_CS_PIN		51
+#define BOARD_MPU6000_CS_PIN		51
 #define BOARD_MPU6000_DRDY_PIN	10  // PC4
 
 
@@ -82,7 +82,45 @@
 #define BOARD_SOFTSERIAL_RX 15
 
 
+# define BOARD_GPIO_A_LED_PIN        36  // BLUE
+//# define HAL_GPIO_B_LED_PIN        37  // YELLOW OPTIONAL (not included)
+# define BOARD_GPIO_B_LED_PIN        9      //  frequency select - resistor to VCC or ground
+# define BOARD_GPIO_C_LED_PIN        105 // RED
+
+# define BOARD_LED_ON           LOW
+# define BOARD_LED_OFF          HIGH
+
+
 #define BOARD_NR_GPIO_PINS      108
+
+
+#define BOARD_I2C_BUS_INT 0  // hardware I2C
+#define BOARD_I2C_BUS_EXT 2  // external soft I2C
+
+
+#define BOARD_BARO_DEFAULT HAL_BARO_MS5611_I2C
+#define BOARD_BARO_MS5611_I2C_ADDR 0x77
+
+
+#define BOARD_COMPASS_DEFAULT HAL_COMPASS_HMC5843
+#define BOARD_COMPASS_HMC5843_I2C_ADDR 0x1E
+
+#define BOARD_INS_DEFAULT HAL_INS_MPU60XX_SPI
+#define BOARD_INS_ROTATION  ROTATION_YAW_180
+#define BOARD_INS_MPU60x0_NAME            "mpu6000"
+
+#define BOARD_STORAGE_SIZE            4096 // EEPROM size
+
+#define BOARD_DATAFLASH_NAME "dataflash"
+
+#define BOARD_OWN_NAME "REVOMINI"
+
+# define BOARD_PUSHBUTTON_PIN   254
+# define BOARD_USB_MUX_PIN      -1
+# define BOARD_BATTERY_VOLT_PIN     8   // Battery voltage on A0 (PC2) D8
+# define BOARD_BATTERY_CURR_PIN     7   // Battery current on A1 (PC1) D7
+# define BOARD_SONAR_SOURCE_ANALOG_PIN 254
+
 
 // motor layouts
 #define REVO_MOTORS_ARDUCOPTER 0
@@ -90,9 +128,9 @@
 #define REVO_MOTORS_CLEANFLIGHT 2
 
 
-   //                                 name            device   bus  mode         cs_pin                 speed_low       speed_high
-#define BOARD_SPI_DEVICES    { HAL_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, MPU6000_CS_PIN,         SPI_1_125MHZ,   SPI_18MHZ }, \
-                             { HAL_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
+   //                                    name            device   bus  mode         cs_pin                 speed_low       speed_high
+#define BOARD_SPI_DEVICES    { BOARD_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, BOARD_MPU6000_CS_PIN,   SPI_1_125MHZ,   SPI_18MHZ }, \
+                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
 
 
 /*

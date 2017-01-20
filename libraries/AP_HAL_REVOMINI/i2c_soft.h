@@ -20,7 +20,6 @@
 #include <stdbool.h>
 #include <stm32f4xx.h>
 #include <hal.h>
-#include "gpiopins.h"
 #include "systick.h"
 #include "Scheduler.h"
 

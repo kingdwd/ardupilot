@@ -4,7 +4,6 @@
 
 
 #include <spi.h>
-#include <io.h>
 #include "Semaphores.h"
 
 #include <inttypes.h>
@@ -31,7 +30,7 @@
 using namespace REVOMINI;
 
 
-static const SPIDesc spi_device_table[] = {    // TODO: different SPI tables per board subtype
+static const SPIDesc spi_device_table[] = {    // different SPI tables per board subtype
     BOARD_SPI_DEVICES
 };
 
@@ -305,6 +304,7 @@ bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, 
         }
     }
 
+#if 0
     spi_trans_array[spi_trans_ptr].dev      = _desc.dev;
     spi_trans_array[spi_trans_ptr].send_len = send_len;
     if(send_len)
@@ -322,7 +322,7 @@ bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, 
     else spi_trans_array[spi_trans_ptr].recv1 = 0;
     
     spi_trans_ptr++;
-
+#endif
 
     _cs_release();
     return true;    
@@ -345,9 +345,8 @@ bool SPIDevice::transfer_fullduplex(const uint8_t *send, uint8_t *recv, uint32_t
 
 
 #else
+/////////////// hardware
 
-#pragma GCC push_options
-//#pragma GCC optimize ("O0")
 
 
 void SPIDevice::init(){
@@ -425,6 +424,7 @@ bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, 
 
     int ret = spimaster_transfer(_desc.dev, send, send_len, recv, recv_len);
 
+#if 0
     spi_trans_array[spi_trans_ptr].dev      = _desc.dev;
     spi_trans_array[spi_trans_ptr].send_len = send_len;
     if(send_len)
@@ -442,7 +442,7 @@ bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, 
     else spi_trans_array[spi_trans_ptr].recv1 = 0;
     
     spi_trans_ptr++;
-    
+#endif
     _cs_release();
     
     bus_busy = false;

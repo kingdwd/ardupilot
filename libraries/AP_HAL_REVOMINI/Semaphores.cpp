@@ -75,13 +75,14 @@ bool Semaphore::_take_from_mainloop(uint32_t timeout_ms) {
 }
 
 bool Semaphore::_take_nonblocking() {
-    bool result = false;
+
     noInterrupts();
     if (!_taken) {
         _taken = true;
-        result = true;
+        interrupts();
+        return true;
     }
     interrupts();
-    return result;
+    return false;
 }
 

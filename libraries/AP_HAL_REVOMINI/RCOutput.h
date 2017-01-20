@@ -1,14 +1,28 @@
+#pragma once
 
-#ifndef __AP_HAL_REVOMINI_RCOUTPUT_H__
-#define __AP_HAL_REVOMINI_RCOUTPUT_H__
-
-#include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
+#include "AP_HAL_REVOMINI_Namespace.h"
 #include <timer.h>
+
+
+#include <AP_HAL/RCOutput.h>
+
+#include "AP_HAL_REVOMINI.h"
 #include "GPIO.h"
+#include <AP_HAL/HAL.h>
+
 
 #define PWM_IGNORE_THIS_CHANNEL 1
 
 #define REVOMINI_MAX_OUTPUT_CHANNELS 12
+
+
+enum BOARD_PWM_MODES {
+    BOARD_PWM_NORMAL=0,
+    BOARD_PWM_ONESHOT,
+    BOARD_PWM_ONESHOT125,
+    BOARD_PWM_BRUSHED16KHZ,
+    BOARD_PWM_ONESHOT42,
+};
 
 #define MOTORID1 0
 #define MOTORID2 1
@@ -23,7 +37,6 @@
 #define MOTORID11 10
 #define MOTORID12 11
 
-extern void setupTimers(void);
 
 class REVOMINI::REVOMINIRCOutput : public AP_HAL::RCOutput {
 public:
@@ -70,7 +83,8 @@ private:
     static bool _need_update;
     static void _init_alt_channels() {}// we don't has channels more than 8
     static uint8_t _used_channels;
-    static enum output_mode _mode;
+    static enum BOARD_PWM_MODES _mode;
+    static bool _once_mode;
     
     static uint32_t _timer_frequency[REVOMINI_MAX_OUTPUT_CHANNELS];
     
@@ -81,6 +95,6 @@ private:
 
     static bool _timer3_2flag;
 
+
 };
 
-#endif // __AP_HAL_REVOMINI_RCOUTPUT_H__

@@ -18,7 +18,11 @@
  */
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 
+#include "AP_HAL_REVOMINI.h"
 #include <AP_HAL/AP_HAL.h>
+
+#include "AP_HAL_REVOMINI_Namespace.h"
+
 #include "AnalogIn.h"
 #include <adc.h>
 #include <boards.h>
@@ -47,10 +51,6 @@ REVOMINIAnalogSource::REVOMINIAnalogSource(uint8_t pin) :
     }
 }
 
-float REVOMINIAnalogSource::read_average() {
-    float temp= _read_average();
-    return temp;
-}
 
 float REVOMINIAnalogSource::read_latest() {
     noInterrupts();
@@ -111,14 +111,6 @@ void REVOMINIAnalogSource::set_pin(uint8_t pin) {
     }
 }
 
-void REVOMINIAnalogSource::set_stop_pin(uint8_t pin) {
-    _stop_pin = pin;
-}
-
-void REVOMINIAnalogSource::set_settle_time(uint16_t settle_time_ms)
-{
-    _settle_time_ms = settle_time_ms;
-}
 
 /* read_average is called from the normal thread (not an interrupt). */
 float REVOMINIAnalogSource::_read_average()
@@ -130,11 +122,11 @@ float REVOMINIAnalogSource::_read_average()
     }
 
     /* Read and clear in a critical section */
-    noInterrupts(); //hal.scheduler->suspend_timer_procs(); we do a small operation so noInterrupt is better
-        _last_average = _sum / _sum_count;
-//    _sum = 0;
-//    _sum_count = 0; //let it calculates real average, without resets
-    interrupts();       //hal.scheduler->resume_timer_procs();
+    noInterrupts(); // we do a small operation so noInterrupt is better than suspend_timer_procs()
+      _last_average = _sum / _sum_count;
+//      _sum = 0;
+//      _sum_count = 0; // lets work as free-running moving average
+    interrupts();    
     
     return _last_average;
 }
@@ -161,8 +153,6 @@ void REVOMINIAnalogSource::setup_read() {
 	ADC_TempSensorVrefintCmd(ENABLE);
 	  /* Wait until ADC + Temp sensor start */
 
-	//  uint16_t T_StartupTimeDelay = 1024; we have good delay functions
-	//  while (T_StartupTimeDelay--);
         REVOMINIScheduler::_delay_microseconds(10);
 
     } else if (_pin == ANALOG_INPUT_NONE) {
@@ -215,11 +205,4 @@ void REVOMINIAnalogSource::new_sample(uint16_t sample) {
     }
 }
 
-const adc_dev* REVOMINIAnalogSource::_find_device() {
-
-//    if(_pin != ANALOG_INPUT_NONE) {
-	return _ADC1;
-//    }
-//    return NULL;
-}
 #endif 

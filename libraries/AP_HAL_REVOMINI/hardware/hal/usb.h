@@ -5,6 +5,8 @@
 #include <gpio_hal.h>
 #include <usart.h>
 
+#include <stdbool.h>
+
 #include "../STM32_USB_Driver/usb_bsp.h"
 #include "../STM32_USB_Driver/usb_regs.h"
 #include "../STM32_USB_Driver/usbd_conf.h"
@@ -87,16 +89,25 @@ typedef struct {
 int usb_open(void);
 int usb_close(void);
 int usb_ioctl(int request, void * ctl);
-int usb_write(uint8_t *buf, unsigned int nbytes);
 int usb_read(void  * buf, unsigned int nbytes);
 void usb_default_attr(usb_attr_t *attr);
 int usb_configure(usb_attr_t * attr);
-uint8_t usb_getc(void);
+
+
+int usb_write(uint8_t *buf, unsigned int nbytes);
+int usb_read(void  * buf, unsigned int nbytes);
 uint32_t usb_data_available(void);
+
+void usb_reset_rx();
+void usb_reset_tx();
+
+static inline void usb_putc(uint8_t b){  usb_write(&b, 1); }
+//uint8_t usb_getc(void);
+static inline uint8_t usb_getc(void){ uint8_t c;  usb_read(&c, 1);  return c; }
+
+
 uint16_t usb_tx_pending(void);
-void usb_putc(uint8_t byte);
-void usb_reset_rx(void);
-void usb_reset_tx(void);
+
 
 
 #define DEFAULT_CONFIG                  0
@@ -105,6 +116,8 @@ void usb_reset_tx(void);
 #ifdef __cplusplus
   }
 #endif
+
+void USB_OTG_BSP_uDelay (const uint32_t usec);
 
 
 /* Get the total number of data/space bytes available */
@@ -124,16 +137,10 @@ unsigned VCP_Get(void* buff, unsigned max_len);
 unsigned VCP_Put(void const* buff, unsigned len);
 
 /* Returns pointer to contiguous input data area */
-static inline uint8_t const* VCP_DataPtr(void)
-{
-        return USB_Rx_Buffer + USB_Rx_buff_tail;
-}
+static inline uint8_t const* VCP_DataPtr(void){    return USB_Rx_Buffer + USB_Rx_buff_tail; }
 
 /* Returns pointer to contiguous output free space area */
-static inline uint8_t* VCP_SpacePtr(void)
-{
-        return USB_Tx_Buffer + USB_Tx_buff_head;
-}
+static inline uint8_t* VCP_SpacePtr(void) {        return USB_Tx_Buffer + USB_Tx_buff_head; }
 
 /* Mark data as read */
 void VCP_MarkRead(unsigned sz);
@@ -142,5 +149,11 @@ void VCP_MarkRead(unsigned sz);
 void VCP_MarkWritten(unsigned sz);
 
 int usb_periphcfg(FunctionalState state);
+
+extern uint8_t is_usb_connected();
+
+void VCP_SetUSBTxBlocking(uint8_t Mode);
+void OTG_FS_IRQHandler(void);
+
 
 #endif

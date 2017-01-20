@@ -38,15 +38,18 @@
 #define _WIRISH_H_
 
 #include <string.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "boards.h"
-#include "io.h"
+//#include "io.h"
 #include "bit_constants.h"
-#include "pwm.h"
-#include "ext_interrupts.h"
+//#include "pwm.h"
+//#include "ext_interrupts.h"
 //#include "wirish_debug.h"
 //#include "wirish_math.h"
-#include "wirish_time.h"
-#include "wirish_string.h"
+//#include "wirish_time.h"
+//#include "wirish_string.h"
 //#include "HardwareSPI.h"
 //#include "HardwareSerial.h"
 //#include "FastSerial.h"

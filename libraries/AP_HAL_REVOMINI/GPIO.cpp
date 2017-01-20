@@ -1,11 +1,8 @@
 
-#include "io.h" // in wirish folder
 #include "gpio_hal.h"
 #include <boards.h>
 
-
-
-#include <ext_interrupts.h>
+//#include <ext_interrupts.h>
 #include <exti.h>
 
 #include "GPIO.h"
@@ -136,10 +133,6 @@ bool REVOMINIGPIO::attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p, uint8
     return true;
 }
 
-bool REVOMINIGPIO::usb_connected(void)
-{
-    return gpio_read_bit(PIN_MAP[BOARD_USB_SENSE].gpio_device,PIN_MAP[BOARD_USB_SENSE].gpio_bit);
-}
 
 void REVOMINIDigitalSource::mode(uint8_t output)
 {

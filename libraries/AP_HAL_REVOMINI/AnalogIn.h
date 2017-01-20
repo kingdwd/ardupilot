@@ -19,6 +19,8 @@
 #ifndef __AP_HAL_REVOMINI_ANALOGIN_H__
 #define __AP_HAL_REVOMINI_ANALOGIN_H__
 
+#include <AP_HAL/AP_HAL.h>
+
 #include "AP_HAL_REVOMINI.h"
 extern void setupADC(void);
 
@@ -45,11 +47,11 @@ public:
     friend class REVOMINI::REVOMINIAnalogIn;
 
     REVOMINIAnalogSource(uint8_t pin);
-    float read_average();
+    float read_average() { return _read_average(); }
     float read_latest();
     void set_pin(uint8_t p);
-    void set_stop_pin(uint8_t p);
-    void set_settle_time(uint16_t settle_time_ms);
+    void inline set_stop_pin(uint8_t pin) {     _stop_pin = pin; }
+    void set_settle_time(uint16_t settle_time_ms) {  _settle_time_ms = settle_time_ms; }
     float voltage_average();
     float voltage_latest();
     float voltage_average_ratiometric();
@@ -75,7 +77,7 @@ public:
 
     int16_t get_pin() { return _pin; };
 protected:
-    const adc_dev* _find_device();
+    const inline adc_dev* _find_device() {    return _ADC1;  }
     inline bool initialized() { return _init_done;}
 private:
     /* following three are used from both an interrupt and normal thread */
@@ -107,8 +109,8 @@ public:
     REVOMINIAnalogIn();
     void init();
     AP_HAL::AnalogSource* channel(int16_t n);
-    float board_voltage(void) { 
-        return ( /*ST_VREFINT_CAL / 1000.0*/ 1.2 * 4096  / _vcc.read_average()) * 5.0/3.3; /*_board_voltage;*/ 
+    float inline board_voltage(void) { 
+        return ( 1.2 * 4096  / _vcc.read_average()) * 5.0/3.3; /*_board_voltage;*/ 
     }
     float servorail_voltage(void) { return 0; }
     uint16_t power_status_flags(void) { return 0; }

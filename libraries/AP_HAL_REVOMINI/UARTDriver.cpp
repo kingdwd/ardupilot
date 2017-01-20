@@ -26,12 +26,6 @@
 
 using namespace REVOMINI;
 
-extern const AP_HAL::HAL& hal;
-
-extern void delay(uint32_t ms);
-
-
-
 REVOMINIUARTDriver::REVOMINIUARTDriver(const struct usart_dev *usart):
     _usart_device(usart),
     _initialized(false)
@@ -65,40 +59,14 @@ void REVOMINIUARTDriver::begin(uint32_t baud) {
     _initialized = true;
 }
 
-void REVOMINIUARTDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS) {
-    begin(baud);
-}
-
-void REVOMINIUARTDriver::end() {
-    usart_disable(_usart_device);
-}
 
 void REVOMINIUARTDriver::flush() {
     usart_reset_rx(_usart_device);
     usart_reset_tx(_usart_device);
 }
 
-void REVOMINIUARTDriver::set_blocking_writes(bool blocking) {
-	usart_reset_tx(_usart_device);
-	_usart_device->state->usetxrb = !blocking;
-}
-
-bool REVOMINIUARTDriver::tx_pending() {
-    if (usart_txfifo_nbytes(_usart_device) > 0)   {
-        return true;
-    }
-    return false;
-}
-
 
 /* REVOMINI implementations of Stream virtual methods */
-uint32_t REVOMINIUARTDriver::available() {
-    return usart_data_available(_usart_device);
-}
-
-uint32_t REVOMINIUARTDriver::txspace() {
-    return usart_txfifo_freebytes(_usart_device);
-}
 
 int16_t REVOMINIUARTDriver::read() {
     if (available() <= 0)

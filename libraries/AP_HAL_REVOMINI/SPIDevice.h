@@ -21,13 +21,17 @@
 #include <inttypes.h>
 #include <vector>
 
-#include <AP_HAL/HAL.h>
+
 #include <AP_HAL/SPIDevice.h>
-#include "Semaphores.h"
+
 #include "Scheduler.h"
 #include <spi.h>
 #include <boards.h>
 */
+
+#include <AP_HAL/HAL.h>
+#include "Semaphores.h"
+
 namespace REVOMINI {
 
 
@@ -86,8 +90,7 @@ public:
                         uint8_t *recv, uint32_t recv_len) override;
 
     /* See AP_HAL::SPIDevice::transfer_fullduplex() */
-    bool transfer_fullduplex(const uint8_t *send, uint8_t *recv,
-                                   uint32_t len) override;
+    bool transfer_fullduplex(const uint8_t *send, uint8_t *recv, uint32_t len) override;
 
     /* See AP_HAL::Device::get_semaphore() */
     inline AP_HAL::Semaphore *get_semaphore() { return &_semaphores[_desc.bus]; }
@@ -100,8 +103,7 @@ public:
     }
 
 
-    bool adjust_periodic_callback(
-        AP_HAL::Device::PeriodicHandle h, uint32_t period_usec) override
+    bool adjust_periodic_callback(AP_HAL::Device::PeriodicHandle h, uint32_t period_usec) override
     {
         return REVOMINIScheduler::adjust_timer_task(h, period_usec);
     }
@@ -155,7 +157,7 @@ public:
     AP_HAL::OwnPtr<AP_HAL::SPIDevice> get_device(const char *name);
 
 protected:
-//    static const SPIDesc _device[];
+
 };
 
 }

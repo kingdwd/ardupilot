@@ -21,12 +21,14 @@ Scheduler stats:
   % of full time: 24.56  Efficiency 0.957 
 delay times: in main 86.09 including in semaphore  0.00  in timer  4.89 in isr  0.00 
 Task times:
-task 0x808FFB1200074C4 tim      0.0 int 0.000% tot 0.0000% mean time   0.0
-task 0x8090BB1200074F0 tim    293.6 int 2.321% tot 0.5701% mean time   8.3
-task 0x808B07D200073E8 tim      1.8 int 0.014% tot 0.0035% mean time   0.9
-task 0x804206720009438 tim   1711.7 int 13.532% tot 3.3244% mean time 442.5
-task 0x804403720009900 tim   1845.0 int 14.586% tot 3.5834% mean time 632.1
-task 0x804AEDD200099F0 tim   8797.0 int 69.547% tot 17.0855% mean time 265.9
+task 0x808FFB1200074C4 tim      0.0 int 0.000% tot 0.0000% mean time   0.0  max 1
+task 0x8090BB1200074F0 tim    293.6 int 2.321% tot 0.5701% mean time   8.3  max 18
+task 0x808B07D200073E8 tim      1.8 int 0.014% tot 0.0035% mean time   0.9  max 3
+task 0x804206720009438 tim   1711.7 int 13.532% tot 3.3244% mean time 442.5 max 445
+task 0x804403720009900 tim   1845.0 int 14.586% tot 3.5834% mean time 632.1 max 867
+task 0x804AEDD200099F0 tim   8797.0 int 69.547% tot 17.0855% mean time 265.9 max 3474
+
+max loop time 4800uS
 
 */
 
@@ -38,14 +40,11 @@ AP_HAL::Proc REVOMINIScheduler::_failsafe = NULL;
 volatile bool REVOMINIScheduler::_timer_suspended = false;
 volatile bool REVOMINIScheduler::_timer_event_missed = false;
 volatile bool REVOMINIScheduler::_in_timer_proc = false;
-//AP_HAL::MemberProc REVOMINIScheduler::_timer_proc[REVOMINI_SCHEDULER_MAX_TIMER_PROCS] IN_CCM;
-//uint8_t REVOMINIScheduler::_num_timer_procs = 0;
 
 revo_timer REVOMINIScheduler::_timers[REVOMINI_SCHEDULER_MAX_SHEDULED_PROCS] IN_CCM;
 uint8_t    REVOMINIScheduler::_num_timers = 0;
 
-//AP_HAL::MemberProc REVOMINIScheduler::_io_process[REVOMINI_SCHEDULER_MAX_IO_PROCS] IN_CCM;
-uint8_t            REVOMINIScheduler::_num_io_proc=0;
+uint8_t    REVOMINIScheduler::_num_io_proc=0;
 
 AP_HAL::Proc REVOMINIScheduler::_delay_cb=NULL;
 uint16_t REVOMINIScheduler::_min_delay_cb_ms=0;
@@ -83,6 +82,7 @@ bool     REVOMINIScheduler::flag_10s = false;
 uint64_t REVOMINIScheduler::task_time = 0;
 uint64_t REVOMINIScheduler::delay_time = 0;
 uint64_t REVOMINIScheduler::delay_int_time = 0;
+uint32_t REVOMINIScheduler::max_loop_time=0;
 #endif
 
 
@@ -102,7 +102,6 @@ REVOMINIScheduler::REVOMINIScheduler()
 }
 
 
-#define SHED_FREQ 8000 // in Hz
 
 void REVOMINIScheduler::init()
 {
@@ -114,16 +113,15 @@ void REVOMINIScheduler::init()
     
                 // dev    period   freq, kHz
     configTimeBase(TIMER7, period, 2000);       //2MHz 0.5us ticks
-    timer_attach_interrupt(TIMER7, TIMER_UPDATE_INTERRUPT, _timer_isr_event, 7); // low priority
+    timer_attach_interrupt(TIMER7, TIMER_UPDATE_INTERRUPT, _timer_isr_event, 11); // low priority
     timer_resume(TIMER7);
 
 // timer5 - 32-bit general timer, unused for other needs
 // so we can read micros32() directly from its counter and micros64() from counter and overflows
     configTimeBase(TIMER5, 0, 1000);       //1MHz 1us ticks
     timer_set_count(TIMER5,(1000000/SHED_FREQ)/2); // to not interfere with TIMER7
-    timer_attach_interrupt(TIMER5, TIMER_UPDATE_INTERRUPT, _timer5_ovf, 8); // lower priority
+    timer_attach_interrupt(TIMER5, TIMER_UPDATE_INTERRUPT, _timer5_ovf, 2); // high priority
     timer_resume(TIMER5);
-
 
 
     // run standard Ardupilot tasks on 1kHz 
@@ -276,7 +274,12 @@ void REVOMINIScheduler::_run_timer_procs(bool called_from_isr) {
 
     // and the failsafe, if one is setup
     if (_failsafe) {
-        _failsafe();
+        static uint32_t last_failsafe=0;
+        uint32_t t=_micros();
+        if(t>last_failsafe){
+            last_failsafe = t+10000; // 10ms or 100Hz
+            _failsafe();
+        }
     }
 
     _in_timer_proc = false;
@@ -308,8 +311,7 @@ uint64_t REVOMINIScheduler::_micros64() {
 // *(uint32_t *)0x40002850 = 0xb007b007;
 #define BOOT_RTC_SIGNATURE	0xb007b007
 
-static void
-board_set_rtc_signature(uint32_t sig)
+void REVOMINIScheduler::board_set_rtc_signature(uint32_t sig)
 {
         // enable the backup registers.
         PWR->CR   |= PWR_CR_DBP;
@@ -339,8 +341,20 @@ void REVOMINIScheduler::system_initialized()
 void REVOMINIScheduler::reboot(bool hold_in_bootloader) {
     hal.console->println("GOING DOWN FOR A REBOOT\r\n");
 
-    if(hold_in_bootloader)
+    if(hold_in_bootloader) {
+#if 1
+        if((uint32_t)&__isr_vector_start == 0x08000000) { // bare metal build without bootloader
+            // Reboot to BootROM - to DFU mode
+            asm volatile("\
+    ldr     r0, =0x1FFF0000\n\
+    ldr     sp,[r0, #0]    \n\
+    ldr     r0,[r0, #4]    \n\
+    bx      r0             \n\
+            ");
+        } else
+#endif
         board_set_rtc_signature(BOOT_RTC_SIGNATURE);
+    }
 
     _delay(100);
 
@@ -373,14 +387,14 @@ void REVOMINIScheduler::_print_stats(){
         if(is_zero(shed_eff)) shed_eff = eff;
         else              shed_eff = shed_eff*(1 - 1/Kf) + eff*(1/Kf);
 
-        hal.console->printf("\nScheduler stats:\n  %% of full time: %5.2f  Efficiency %5.3f \n", (task_time/10.0)/t /* in percent*/ , shed_eff );
+        hal.console->printf("\nScheduler stats:\n  %% of full time: %5.2f  Efficiency %5.3f max loop time %ld \n", (task_time/10.0)/t /* in percent*/ , shed_eff, max_loop_time );
         hal.console->printf("delay times: in main %5.2f including in semaphore %5.2f  in timer %5.2f in isr %5.2f \nTask times:\n", (delay_time/10.0)/t, (Semaphore::sem_time/10.0)/t,  (delay_int_time/10.0)/t, (isr_time/10.0)/t );
 
         yield();
 
         for(int i=0; i< _num_timers; i++) {
             if(_timers[i].proc){    // task not cancelled?
-                hal.console->printf("task 0x%llX tim %8.1f int %5.3f%% tot %6.4f%% mean time %5.1f\n", _timers[i].proc, _timers[i].fulltime/1000.0, _timers[i].fulltime*100.0 / task_time, (_timers[i].fulltime / 10.0) / t, (float)_timers[i].fulltime/_timers[i].count  );
+                hal.console->printf("task 0x%llX tim %8.1f int %5.3f%% tot %6.4f%% mean time %5.1f max time %ld\n", _timers[i].proc, _timers[i].fulltime/1000.0, _timers[i].fulltime*100.0 / task_time, (_timers[i].fulltime / 10.0) / t, (float)_timers[i].fulltime/_timers[i].count, _timers[i].micros );
                 yield();
             }
         }
@@ -478,7 +492,9 @@ bool REVOMINIScheduler::unregister_timer_task(AP_HAL::Device::PeriodicHandle h)
     return true;
 }
 
-#define TIMER_PERIOD (1000000 / SHED_FREQ)  //250 // interrupts period in uS
+#define TIMER_PERIOD (1000000 / SHED_FREQ)  //125  interrupts period in uS
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 void REVOMINIScheduler::_run_timers(){
     uint32_t now = _micros();
@@ -489,21 +505,23 @@ void REVOMINIScheduler::_run_timers(){
     uint32_t job_t = 0;
 #endif                
 
-//    bool ovf = now < last_run; // counter's overflow
     volatile uint32_t dt = now - last_run; // time from last run - just for debug
+
     last_run = now;
 
     for(int i = 0; i<_num_timers; i++){
-        if(_timers[i].proc){    // task not cancelled?
+        revo_timer &tim = _timers[i];
+        
+        if(tim.proc){    // task not cancelled?
 /*
     у нас время в 32-разрядном счетчике, который может переполниться
     ovf - флаг переполнения времени. dt - время с момента прошлого тика
     
-    now - _timers[i].last_run - время с момента прошлого запуска, с учетом всех переполнений
+    now - tim.last_run - время с момента прошлого запуска, с учетом всех переполнений
     
 */
-            if( (now - _timers[i].last_run) > _timers[i].period) { // time to run?
-                if(_timers[i].sem && !_timers[i].sem->take_nonblocking()) { // semaphore active? take!
+            if( (now - tim.last_run) > tim.period) { // time to run?
+                if(tim.sem && !tim.sem->take_nonblocking()) { // semaphore active? take!
                     // can't get semaphore, just do nothing - will try next time
                     continue;
                 }
@@ -511,8 +529,8 @@ void REVOMINIScheduler::_run_timers(){
                 uint32_t t = _micros();
 #endif          
                 bool ret=false;
-                Revo_cb r = { .h=_timers[i].proc }; // don't touch it without hardware debugger!
-                switch(_timers[i].mode){
+                Revo_cb r = { .h=tim.proc }; // don't touch it without hardware debugger!
+                switch(tim.mode){
                 case 0:
                     ret = (r.pcb)();       // call task
                     break;
@@ -521,23 +539,23 @@ void REVOMINIScheduler::_run_timers(){
                     ret=1;
                     break;
                 }
-                if(_timers[i].sem) _timers[i].sem->give(); //  semaphore active? give back ASAP!
+                if(tim.sem) tim.sem->give(); //  semaphore active? give back ASAP!
 
                 if(ret) {  // reschedule
-                    _timers[i].last_run    += _timers[i].period; // прошлое время запуска - по надобности а не по факту
+                    tim.last_run    += tim.period; // прошлое время запуска - по надобности а не по факту
                 } else {
 // all callee never returns false to unregister itself so we can use it as flag to simply reschedule
-//                    _timers[i].proc = 0L;               // cancel task
+//                    tim.proc = 0L;               // cancel task
                 }
 
                 now = _micros();
 #ifdef SHED_PROF
                 t = now - t;               // work time
 
-                if(_timers[i].micros < t)
-                    _timers[i].micros    =  t;      // max time
-                _timers[i].count     += 1;          // number of calls
-                _timers[i].fulltime  += t;          // full time, mean time = full / count
+                if(tim.micros < t)
+                    tim.micros    =  t;      // max time
+                tim.count     += 1;          // number of calls
+                tim.fulltime  += t;          // full time, mean time = full / count
                 job_t += t;                  // time of all jobs
 #endif                
             }
@@ -549,11 +567,15 @@ void REVOMINIScheduler::_run_timers(){
     full_t = _micros() - full_t;         // full time of scheduler
     uint32_t shed_t = full_t - job_t;   // net time
 
+    if(full_t>max_loop_time)
+        max_loop_time=full_t;
+
     task_time += job_t; // full time in tasks
     shed_time += shed_t;
 #endif                
 
 }
+#pragma GCC diagnostic pop
 
 // ]
 

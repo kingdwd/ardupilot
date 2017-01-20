@@ -18,9 +18,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
-
 #include <usb.h>
-#include <usart.h>
 #include <gpio_hal.h>
 
 
@@ -39,41 +37,14 @@ USBDriver::USBDriver(bool usb):
 
 void USBDriver::begin(uint32_t baud) {
 
-    _usb_present = gpio_read_bit(_GPIOC,5);
+    _usb_present = gpio_read_bit(PIN_MAP[BOARD_USB_SENSE].gpio_device,PIN_MAP[BOARD_USB_SENSE].gpio_bit);
 
     _initialized = true;
 }
 
-void USBDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS) {
-    begin(baud);
-}
-
-void USBDriver::end() {
-    if(_usb_present)
-	usb_close();
-}
-
-void USBDriver::flush() {
-    if(_usb_present)
-	usb_reset_rx();
-}
-
-void USBDriver::set_blocking_writes(bool blocking) {
-}
-
-bool USBDriver::tx_pending() {
-    return false;
-}
 
 
 /* REVOMINI implementations of Stream virtual methods */
-uint32_t USBDriver::available() {
-    return usb_data_available();
-}
-
-uint32_t USBDriver::txspace() {
-    return 255;
-}
 
 int16_t USBDriver::read() {
     if(_usb_present){
@@ -87,10 +58,11 @@ int16_t USBDriver::read() {
 /* REVOMINI implementations of Print virtual methods */
 size_t USBDriver::write(uint8_t c) {
 
-    if(_usb_present == 1){
+    if(_usb_present){
 	usb_putc(c);
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 size_t USBDriver::write(const uint8_t *buffer, size_t size)

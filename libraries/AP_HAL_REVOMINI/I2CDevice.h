@@ -18,12 +18,14 @@
 #pragma once
 
 #include <inttypes.h>
+#include "AP_HAL_REVOMINI_Namespace.h"
+#include "Scheduler.h"
 
 #include <AP_HAL/HAL.h>
 #include <AP_HAL/I2CDevice.h>
 #include <AP_HAL/utility/OwnPtr.h>
 #include "Semaphores.h"
-#include "Scheduler.h"
+
 #include <i2c.h>
 #include "i2c_soft.h"
 

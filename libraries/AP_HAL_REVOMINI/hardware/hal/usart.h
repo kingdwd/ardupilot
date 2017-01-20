@@ -133,7 +133,14 @@ void usart_setup(const usart_dev *dev,
  * @param dev Serial port to enable.
  * @see usart_set_baud_rate()
  */
-void usart_enable(const usart_dev *dev);
+static inline void usart_enable(const usart_dev *dev)
+{
+    /* Check the parameters */
+    assert_param(IS_USART_ALL_PERIPH(dev->USARTx));
+
+    /* Enable USART */
+    USART_Cmd(dev->USARTx, ENABLE);
+}
 
 /**
  * @brief Turn off a serial port.
@@ -262,7 +269,7 @@ static inline void usart_reset_tx(const usart_dev *dev) {
     dev->state->txbusy = 0;
 }
 
-static void inline usart_set_callback(const usart_dev *dev, usart_cb cb)
+static inline void usart_set_callback(const usart_dev *dev, usart_cb cb)
 {
     dev->state->callback = cb;
 }
@@ -274,6 +281,9 @@ void USART3_IRQHandler(void);
 void USART4_IRQHandler(void);
 void USART5_IRQHandler(void);
 void USART6_IRQHandler(void);
+
+void UART4_IRQHandler(void);
+void UART5_IRQHandler(void);
 
 
 #ifdef __cplusplus

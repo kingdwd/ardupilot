@@ -2,13 +2,6 @@
 #include <AP_HAL/AP_HAL.h>
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 
-#include "USBDriver.h"
-#include "I2CDevice.h"
-#include <pwm_in.h>
-#include <usart.h>
-#include <i2c.h>
-#include <spi.h>
-
 #include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
 #include "AP_HAL_REVOMINI_Namespace.h"
 #include "AP_HAL_REVOMINI_Private.h"
@@ -121,12 +114,9 @@ void HAL_REVOMINI::run(int argc,char* const argv[], Callbacks* callbacks) const
 {
     assert(callbacks);
 
-
     /* initialize all drivers and private members here.
      * up to the programmer to do this in the correct order.
      * Scheduler should likely come first. */
-
-//    setupTimers(); // init all timers in Arduino_STM32 compatible mode, including Timer7 for Sheduler so it must be 1st
 
     scheduler->init();
 
@@ -138,8 +128,7 @@ void HAL_REVOMINI::run(int argc,char* const argv[], Callbacks* callbacks) const
     usb_init(); // moved from boards.cpp
 
     /* uartA is the USB serial port used for the console, so lets make sure it is initialized at boot */
-//    uartA->begin(115200); 
-    uartA->begin(230400); 
+    uartA->begin(115200); 
 
     rcin->init();
 
@@ -150,10 +139,7 @@ void HAL_REVOMINI::run(int argc,char* const argv[], Callbacks* callbacks) const
 
 #if 0 //[ here is too late :( so we need a small hack and call lateInit from REVOMINIScheduler::register_delay_callback 
 //         which called when parameters already initialized
-
-    AP_Param::setup_object_defaults(this, var_info); // setup all params
     
-    //((REVOMINI::REVOMINIRCOutput *)rcout)->lateInit(_motor_layout); // 2nd stage - now with loaded parameters
     REVOMINIRCOutput::lateInit(_motor_layout); // 2nd stage - now with loaded parameters
 #endif //]
 
@@ -166,15 +152,9 @@ void HAL_REVOMINI::run(int argc,char* const argv[], Callbacks* callbacks) const
     }
 }
 
-
-void HAL_REVOMINI::lateInit(){
-    
-//    REVOMINIRCOutput::lateInit(_motor_layout); // 2nd stage - now with loaded parameters
+void HAL_REVOMINI::lateInit() {
     REVOMINIRCOutput::lateInit(1); // 2nd stage - now with loaded parameters
 }
-
-
-//const HAL_REVOMINI AP_HAL_REVOMINI;
 
 const AP_HAL::HAL& AP_HAL::get_HAL() {
     static const HAL_REVOMINI hal_revo;

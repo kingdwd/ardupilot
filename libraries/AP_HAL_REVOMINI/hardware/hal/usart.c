@@ -216,14 +216,6 @@ void usart_setup(const usart_dev *dev, uint32_t baudRate, uint16_t wordLength,
      */
 }
 
-void usart_enable(const usart_dev *dev)
-{
-    /* Check the parameters */
-    assert_param(IS_USART_ALL_PERIPH(dev->USARTx));
-
-    /* Enable USART */
-    USART_Cmd(dev->USARTx, ENABLE);
-}
 
 void usart_disable(const usart_dev *dev)
 {

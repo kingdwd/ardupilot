@@ -10,6 +10,7 @@
 #include <AP_HAL/GPIO.h>
 #include "DataFlash.h"
 #include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
+#include <AP_HAL_REVOMINI/GPIO.h>
 #include "DataFlash_Block.h"
 
 // flash size

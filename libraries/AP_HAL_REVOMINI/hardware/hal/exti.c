@@ -67,16 +67,18 @@ void exti_attach_interrupt(afio_exti_num num,
 	//exti_channels[num].handler = handler;
 	handlers[num] = handler;
 
+	// Enable SYSCFG clock 
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+
+/*  this is not a job of attachInterrupt
 	gpio_dev *dev = gpio_get_gpio_dev(port);
 	
-	/* Enable SYSCFG clock */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
  
-	/* Enable GPIOx clock */	
+	//* Enable GPIOx clock 	
 	RCC_AHB1PeriphClockCmd(dev->clk, ENABLE);
   
-	/* Configure pin as input floating */
-/*	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;   this is not a job of attachInterrupt
+	// Configure pin as input floating 
+        GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;  
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
 	GPIO_InitStructure.GPIO_Pin = BIT(num);
 	GPIO_Init(dev->GPIOx, &GPIO_InitStructure);
@@ -116,7 +118,6 @@ void exti_detach_interrupt(afio_exti_num num)
 	NVIC_Init(&NVIC_InitStructure);
   
 	/* Finally, unregister the user's handler */
-	//exti_channels[num].handler = NULL;	
 	handlers[num] = NULL;	
 }
 

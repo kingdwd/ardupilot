@@ -5,7 +5,7 @@
 #include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
 
 #include <usart.h>
-#include <usb.h>
+
 #include <gpio_hal.h>
 #include "Scheduler.h"
 
@@ -17,20 +17,20 @@ public:
 
   /* REVOMINI implementations of UARTDriver virtual methods */
   void begin(uint32_t b);
-  void begin(uint32_t b, uint16_t rxS, uint16_t txS);
-  void end();
+  void inline begin(uint32_t b, uint16_t rxS, uint16_t txS) {   begin(b); }
+  void inline end() {  usart_disable(_usart_device); }
   void flush();
-  bool is_initialized(){ return _initialized; }
+  bool inline is_initialized(){ return _initialized; }
 
-  void set_blocking_writes(bool blocking);
+  inline void set_blocking_writes(bool blocking) { /* usart_reset_tx(_usart_device); */ _usart_device->state->usetxrb = !blocking; }
 
-  bool tx_pending();
+  inline bool tx_pending() {   return (usart_txfifo_nbytes(_usart_device) > 0); }
 
   inline void setCallback(usart_cb cb) { usart_set_callback(_usart_device, cb); }
 
   /* REVOMINI implementations of Stream virtual methods */
-  uint32_t available() override;
-  uint32_t txspace() override;
+  uint32_t inline available() override {     return usart_data_available(_usart_device); }
+  uint32_t inline  txspace() override {    return usart_txfifo_freebytes(_usart_device); }
   int16_t read() override;
 
   /* Empty implementations of Print virtual methods */

@@ -1,5 +1,5 @@
 #include <i2c.h>
-#include "gpiopins.h"
+//#include "gpiopins.h"
 #include "systick.h"
 #include "stm32f4xx_i2c.h"
 #include "stm32f4xx_dma.h"
@@ -93,7 +93,7 @@ void i2c_lowLevel_deinit(const i2c_dev *dev){
  */
 static inline void i2c_lowLevel_init(const i2c_dev *dev)  {
     GPIO_InitTypeDef GPIO_InitStructure;
-    NVIC_InitTypeDef NVIC_InitStructure;
+//    NVIC_InitTypeDef NVIC_InitStructure;
 
     /* Enable the i2c */
     RCC_APB1PeriphClockCmd(dev->clk, ENABLE);
@@ -171,8 +171,8 @@ uint8_t i2c_is_busy() {
 uint32_t i2c_write(const i2c_dev *dev, uint8_t addr, const uint8_t *tx_buff, uint8_t *len)
 {
 
-    uint16_t sent = 0;
-    uint8_t *buffer = tx_buff;
+//    uint16_t sent = 0;
+    const uint8_t *buffer = tx_buff;
 
     uint32_t state = I2C_ERROR;
     
@@ -285,7 +285,7 @@ uint32_t i2c_read(const i2c_dev *dev, uint8_t addr, const uint8_t *tx_buff, uint
     uint8_t *buffer8 = rx_buff;
     
     uint32_t state=I2C_ERROR; 
-    uint32_t sr2;
+    //uint32_t sr2;
 
     // While the bus is busy
     uint32_t timeout = I2C_FLAG_TIMEOUT;

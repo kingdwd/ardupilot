@@ -1,6 +1,6 @@
 #include <hal.h>
 #include "adc.h"
-#include "gpiopins.h"
+//#include "gpiopins.h"
 #include <stdbool.h>
 
 const adc_dev _adc1 = {

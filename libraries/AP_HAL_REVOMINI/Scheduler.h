@@ -2,7 +2,14 @@
 #ifndef __AP_HAL_REVOMINI_SCHEDULER_H__
 #define __AP_HAL_REVOMINI_SCHEDULER_H__
 
+
 #include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
+
+#include "AP_HAL_REVOMINI_Namespace.h"
+//#include "HAL_REVOMINI_Class.h"
+
+#include "Semaphores.h"
+
 #include <delay.h>
 #include <systick.h>
 #include <boards.h>
@@ -14,14 +21,17 @@
 #define REVOMINI_SCHEDULER_MAX_IO_PROCS 10
 #define REVOMINI_SCHEDULER_MAX_SHEDULED_PROCS 32
 
+#define SHED_FREQ 8000 // in Hz
 
-/** Default stack size and stack max. */
+
+/** Default tasks stack size and stack max. */
 #define DEFAULT_STACK_SIZE  1024
 #define MAIN_STACK_SIZE  16384
 #define STACK_MAX  65535
 
 extern "C" {
     extern unsigned _estack; // defined by link script
+    extern unsigned __isr_vector_start; // defined by link script
     extern uint32_t us_ticks;
 }
 
@@ -44,9 +54,9 @@ typedef struct RevoTimer {
     REVOMINI::Semaphore *sem;
     uint8_t mode;
 #ifdef SHED_PROF
-    uint32_t micros;
-    uint32_t count;
-    uint64_t fulltime;
+    uint32_t micros;    // max exec time
+    uint32_t count;     // number of calls
+    uint64_t fulltime;  // full consumed time to calc mean
 #endif
 } revo_timer;
 
@@ -109,6 +119,9 @@ public:
 
     static void _do_io_process();
 
+//    bool                  _run_1khz_procs();
+    static inline bool in_interrupt(){ return (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) || (__get_BASEPRI()); }
+
 
 //{ this functions do a cooperative multitask and inspired by Arduino-Scheduler (Mikael Patel)
     
@@ -134,7 +147,6 @@ public:
    * @return bool.
    */
   static bool start_task(func_t taskSetup, func_t taskLoop, size_t stackSize = DEFAULT_STACK_SIZE);
-
   static bool start_task(AP_HAL::MemberProc proc,  size_t stackSize = DEFAULT_STACK_SIZE);
 
   /**               
@@ -152,8 +164,6 @@ public:
 
 //}
 
-//    bool                  _run_1khz_procs();
-    static inline bool in_interrupt(){ return (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) || (__get_BASEPRI()); }
 
 
 protected:
@@ -166,8 +176,9 @@ protected:
    * @param[in] loop task function (may not be NULL).
    * @param[in] stack top reference.
    */
-    static void init_task(AP_HAL::MemberProc proc, const uint8_t* stack);
     static void init_task(func_t t_setup, func_t t_loop, const uint8_t* stack);
+    // the same but for AP_HAL::MemberProc
+    static void init_task(AP_HAL::MemberProc proc, const uint8_t* stack);
   
   
   /**
@@ -206,6 +217,7 @@ protected:
 //} end of multitask
     
 private:
+    static void board_set_rtc_signature(uint32_t sig);
 
     static AP_HAL::Device::PeriodicHandle _register_timer_task(uint32_t period_us, uint64_t proc, REVOMINI::Semaphore *sem, uint8_t mode=0);
 
@@ -250,6 +262,7 @@ private:
     
     static uint64_t delay_time;
     static uint64_t delay_int_time;
+    static uint32_t max_loop_time;
     
     bool _set_10s_flag();
 #endif

@@ -28,26 +28,22 @@ void systick_init(uint32_t reload_val);
  * Clock the system timer with the core clock and turn it on;
  * interrupt every 1 ms, for systick_timer_millis.
  */
-void systick_enable();
+static inline void systick_enable() {   SysTick->CTRL  = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk; }
 
 /**
  * Clock the system timer with the core clock, but don't turn it
  * on or enable interrupt.
  */
-void systick_disable();
+static inline void systick_disable() {  SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk; }
 
 /**
  * @brief Returns the system uptime, in milliseconds.
  */
-static inline uint64_t systick_uptime(void) {
-    return systick_uptime_millis;
-}
+static inline uint64_t systick_uptime(void) {  return systick_uptime_millis; }
 /**
  * @brief Returns the current value of the SysTick counter.
  */
-static inline uint32_t systick_get_count(void) {
-    return SysTick->VAL;
-}
+static inline uint32_t systick_get_count(void) {  return SysTick->VAL; }
 
 /**
  * @brief Check for underflow.
@@ -58,9 +54,7 @@ static inline uint32_t systick_get_count(void) {
  * interfere with this functionality.  See the ARM Cortex M3 Technical
  * Reference Manual for more details (e.g. Table 8-3 in revision r1p1).
  */
-static inline uint32_t systick_check_underflow(void) {
-    return SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk;
-}
+static inline uint32_t systick_check_underflow(void) { return SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk; }
 
 /**
  * @brief Attach a callback to be called from the SysTick exception handler.
@@ -71,6 +65,11 @@ void systick_attach_callback(void (*callback)(void));
 
 uint32_t systick_micros(void);
 
+void SysTick_Handler(void);
+void HardFault_Handler(void);
+void MemManage_Handler(void);
+void BusFault_Handler(void);
+void UsageFault_Handler(void);
 
 #ifdef __cplusplus
   }

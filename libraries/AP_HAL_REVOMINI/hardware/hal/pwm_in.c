@@ -213,7 +213,6 @@ struct PWM_State  {
         uint32_t last_pulse;
 };
 */
-
 	if (channel->tim == tim && (TIM_GetITStatus(tim, channel->tim_cc) == SET)) {
 
 	    val = TIM_GetCapture1(channel->tim); // captured value

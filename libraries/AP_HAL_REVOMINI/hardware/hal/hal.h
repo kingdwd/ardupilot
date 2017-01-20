@@ -22,6 +22,7 @@
 #include "gpio_hal.h"
 #include "delay.h"
 #include "adc.h"
+#include "dma.h"
 
 
 #define ISR_PROF

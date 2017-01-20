@@ -1,8 +1,10 @@
 #include <usb.h>
 #include <hal.h>
 #include <systick.h>
-#include <ext_interrupts.h>
-
+#include <exti.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // bugfixes to ST USB stack - https://github.com/olegv142/stm32tivc_usb_cdc
 
@@ -163,16 +165,10 @@ U8 * USBD_USR_LangIDStrDescriptor(U8 speed, U16 *length)
 /* return the product string descriptor */
 U8 * USBD_USR_ProductStrDescriptor(U8 speed, U16 *length)
 {
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "desc\n");
-#endif
 	if (usb_attr && usb_attr->description)
 		USBD_GetString ((U8 *)usb_attr->description, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_PRODUCT_FS_STRING, USBD_StrDesc, length);
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "desc ok\n");
-#endif
 
 return USBD_StrDesc;
 }
@@ -180,48 +176,30 @@ return USBD_StrDesc;
 /* return the manufacturer string descriptor */
 U8 * USBD_USR_ManufacturerStrDescriptor(U8 speed, U16 *length)
 {
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "manu\n");
-#endif
 	if (usb_attr && usb_attr->manufacturer)
 		USBD_GetString ((U8 *)usb_attr->manufacturer, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "manu ok\n");
-#endif
 return USBD_StrDesc;
 }
 
 /* return the serial number string descriptor */
 U8 *  USBD_USR_SerialStrDescriptor(U8 speed, U16 *length)
 {
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "serial\n");
-#endif
 	if (usb_attr && usb_attr->serial_number)
 		USBD_GetString ((U8 *)usb_attr->serial_number, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_SERIALNUMBER_FS_STRING, USBD_StrDesc, length);
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "serial ok\n");
-#endif
 return USBD_StrDesc;
 }
 
 /* return the configuration string descriptor */
 U8 * USBD_USR_ConfigStrDescriptor(U8 speed , U16 *length)
 {
-#ifdef USB_DEBUG
-    usart_putstr(_USART1, "configuration\n");
-#endif
     if (usb_attr && usb_attr->configuration)
 		USBD_GetString ((U8 *)usb_attr->configuration, USBD_StrDesc, length);
 	else	
 		USBD_GetString ((U8 *)USBD_CONFIGURATION_FS_STRING, USBD_StrDesc, length); 
-#ifdef USB_DEBUG
-    usart_putstr(_USART1, "configuration ok\n");
-#endif
     return USBD_StrDesc;
 }
 
@@ -229,24 +207,15 @@ U8 * USBD_USR_ConfigStrDescriptor(U8 speed , U16 *length)
 /* return the interface string descriptor */
 U8 * USBD_USR_InterfaceStrDescriptor( U8 speed , U16 *length)
 {
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "interface\n");
-#endif
 	if (usb_attr && usb_attr->interface)
 		USBD_GetString ((U8 *)usb_attr->interface, USBD_StrDesc, length);
 	else	
 		USBD_GetString ((U8 *)USBD_INTERFACE_FS_STRING, USBD_StrDesc, length);
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "interface ok\n");
-#endif
 return USBD_StrDesc;
 }
 
 void USBD_USR_Init(void)
 {  
-#ifdef USB_DEBUG
-    usart_putstr(_USART1, "USBD_USR_Init(void)\n");
-#endif
     usb_connected = 0;
 }
 
@@ -261,24 +230,15 @@ void USBD_USR_DeviceReset(uint8_t speed )
 		 default:
 			 break;
 	 }
-#ifdef USB_DEBUG
-	 usart_putstr(_USART1, "USBD_USR_DeviceReset\n");
-#endif
 }
 
 void USBD_USR_DeviceConfigured (void)
 {
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "USBD_USR_DeviceConfigured\n");
-#endif
 	usb_connected = 1;
 }
 
 void USBD_USR_DeviceSuspended(void)
 {
-#ifdef USB_DEBUG
-	usart_putstr(_USART1, "USBD_USR_DeviceSuspended\n");
-#endif
 	usb_connected = 0;
 }
 
@@ -380,12 +340,6 @@ int usb_configure(usb_attr_t * attr)
 	return 1;
 }
 
-
-void USB_OTG_BSP_uDelay (const uint32_t usec)
-{
-	//delay_us(usec);
-	stopwatch_delay_us(usec);
-}
 
 
 void USB_OTG_BSP_mDelay (const uint32_t msec)
@@ -562,29 +516,12 @@ unsigned VCP_SpaceAvail(void)
 
 U16 VCP_DataTx(U8 *buffer, U32 nbytes)
 {
-/*
-	U32 sent = 0;
 
-	while(sent < nbytes)
-	{	
-
-		APP_Rx_Buffer[APP_Rx_ptr_in] = *(buffer + sent);
-		APP_Rx_ptr_in++;
-		sent++;
-		// To avoid buffer overflow 
-		if(APP_Rx_ptr_in == APP_RX_DATA_SIZE) {
-			APP_Rx_ptr_in = 0;
-			// If the buffer is full set OVERRUN line event and ignore new bytes.
-		}
-	}
-	return USBD_OK;
-*/
         unsigned sz = VCP_PutContig(buffer, nbytes);
         if (sz && (nbytes -= sz))
                 sz += VCP_PutContig((uint8_t*)buffer + sz, nbytes);
         return sz;
 }
-
 
 
 
@@ -640,30 +577,6 @@ unsigned VCP_DataAvailContig(void)
 
 static U16 VCP_DataRx(U8 *buffer, U32 nbytes)
 {
-/*	if (!rxfifo) return 0;
-	U32 sent = 0;
-	U32 tosend = nbytes;
-	while(tosend)
-	{
-		if (rb_is_full(rxfifo))
-			return sent;
-		rb_insert(rxfifo, *buffer++);
-		sent++;
-		tosend--;
-	}
-	return sent;
-*/
-/*
-        while(Len-- > 0) {
-                UsbRecBuffer[UsbRecWrite] = *Buf++;
-                if(UsbRecWrite == UsbRecBufferSize) {
-                        UsbRecWrite = 0;
-                } else {
-                        UsbRecWrite ++;
-                }
-        }
-*/
-
         unsigned sz = VCP_GetContig(buffer, nbytes);
         if (sz && (nbytes -= sz))
                 sz += VCP_GetContig((uint8_t*)buffer + sz, nbytes);
@@ -676,10 +589,6 @@ void OTG_FS_IRQHandler(void)
 }
 
 
-void VCP_SetUSBTxBlocking(uint8_t Mode)
-{
-        UsbTXBlock = Mode;
-}
 
 /*---------------------------- usb_open ---------------------------------*/
 
@@ -760,111 +669,37 @@ int usb_ioctl(int request, void *ctl)
 }
 
 
-/*---------------------------- usb_write --------------------------------*/
-
-int usb_write(uint8_t *buf, unsigned int nbytes)
-{
-/*
-    U16 tosend = nbytes;
-	U16 sent = 0;
-	U8 *buffer8 = (U8 *)buf;
-	int bytesput;
-	
-	if (usb_ready == 0) {
-		return 0;
-	}
-		
-	sent = 0;
-
-	//if (!txfifo)
-	//    {
-	//	return 0;
-	//    }
-
-	//char *str = (char *)buf;
-	//usart_putstr(_USART1, str);
-	// blocking mode
-	while(tosend) {
-		bytesput = VCP_DataTx(buffer8,nbytes);
-		tosend -= bytesput;
-		buffer8 += bytesput;
-		sent += bytesput;
-	}
-	return sent;
-*/
-
-    return VCP_DataTx(buf, nbytes);
+// following functions can't be inline!
+void USB_OTG_BSP_uDelay (const uint32_t usec) {   
+    stopwatch_delay_us(usec); 
 }
 
-/*---------------------------- usb_read ---------------------------------*/
-
-int usb_read(void  * buf, unsigned int nbytes)
-{
-/*
-	U16 toread = nbytes;
-	U16 received;
-	U8 *buffer8 = (U8 *)buf;
-
-	if (usb_ready == 0) {
-		return 0;
-	}
-	
-	received = 0;
-	
-	if (!rxfifo) {
-		return 0;
-	}
-		
-	// blocking mode
-	while(toread) {
-		// get characters from ring buffer 
-		if (!rb_is_empty(rxfifo)) {
-			*buffer8 = rb_remove(rxfifo);
-			received++;
-			buffer8++;
-			toread--;
-		}
-	}
-
-	return received;
-*/
-    return VCP_DataRx(buf, nbytes);
+int usb_write(uint8_t *buf, unsigned int nbytes) {
+    return VCP_DataTx(buf, nbytes); 
 }
 
-void usb_reset_rx()
-{
-	rb_reset(rxfifo);
+int usb_read(void  * buf, unsigned int nbytes){
+     return VCP_DataRx(buf, nbytes); 
 }
 
-void usb_reset_tx()
-{
-	APP_Rx_ptr_in = 0;
-	rb_reset(txfifo);
+uint32_t usb_data_available(void){  
+    return VCP_DataAvail(); 
 }
 
-void usb_putc(uint8_t byte)
-{
-	usb_write(&byte, 1);
+void usb_reset_rx(){  
+      rb_reset(rxfifo); 
 }
 
-uint8_t usb_getc(void)
-{
-    uint8_t c;
-    usb_read(&c, 1);
-    //return rb_remove(rxfifo);
-    return c;
+void usb_reset_tx(){  
+      APP_Rx_ptr_in = 0;    
+      rb_reset(txfifo);  
 }
 
-uint32_t usb_data_available(void)
-{
-    //return rb_full_count(rxfifo);
-    return VCP_DataAvail();
+uint16_t usb_tx_pending(void){     
+    return USB_TX_BUFF_SIZE-VCP_SpaceAvail(); 
 }
-uint16_t usb_tx_pending(void)
-{
-    //return rb_full_count(txfifo);
-    return USB_TX_BUFF_SIZE-VCP_SpaceAvail();
+
+void VCP_SetUSBTxBlocking(uint8_t Mode) {    
+    UsbTXBlock = Mode; 
 }
-/*----------------------------------------------------------------------------
- * end of file
- *---------------------------------------------------------------------------*/
+//----------------------------------------------------------------------------

@@ -46,11 +46,22 @@ public:
 	uint16_t format(void);
 
 	uint16_t erases(uint16_t *);
-	uint16_t read (uint16_t address);
 	uint16_t read (uint16_t address, uint16_t *data);
+	/**
+  * @brief      Returns the last stored variable data, if found,
+  *                     which correspond to the passed virtual address
+  * @param  Address: Variable virtual address
+  * @retval Data for variable or EEPROM_DEFAULT_DATA, if any errors
+  */
+        inline uint16_t read (uint16_t address) { 
+            uint16_t data;
+            read(address, &data);
+            return data;
+        }
+        
 	uint16_t write(uint16_t address, uint16_t data);
 	uint16_t count(uint16_t *);
-	uint16_t maxcount(void);
+	inline uint16_t maxcount(void) {   return ((PageSize / 4)-1); }
 
 	uint32_t PageBase0;
 	uint32_t PageBase1;

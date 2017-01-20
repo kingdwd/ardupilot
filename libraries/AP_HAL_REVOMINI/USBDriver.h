@@ -4,10 +4,18 @@
 
 #include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
 
-#include <usb.h>
 #include <gpio_hal.h>
+//#include <usb.h> can't include here because defines there conflicts wil AP_Math
+#include <usart.h>
 
 #define DEFAULT_TX_TIMEOUT 10000
+
+extern "C" {
+ extern int usb_open(void);
+ extern int usb_close(void);
+ uint32_t usb_data_available(void);
+ void usb_reset_rx();
+}
 
 namespace REVOMINI {
 
@@ -17,18 +25,18 @@ public:
 
   /* REVOMINI implementations of UARTDriver virtual methods */
   void begin(uint32_t b);
-  void begin(uint32_t b, uint16_t rxS, uint16_t txS);
-  void end();
-  void flush();
-  bool is_initialized(){ return _initialized; }
+  void begin(uint32_t b, uint16_t rxS, uint16_t txS) {    begin(b); }
+  inline void end()   {  if(_usb_present) usb_close(); }
+  inline void flush() {  if(_usb_present) usb_reset_rx(); }
+  inline bool is_initialized(){ return _initialized; }
 
-  void set_blocking_writes(bool blocking);
+  inline  void set_blocking_writes(bool blocking) { }
 
-  bool tx_pending();
+  inline  bool tx_pending() {   return false; }
 
   /* REVOMINI implementations of Stream virtual methods */
-  uint32_t available() override;
-  uint32_t txspace() override;
+  inline uint32_t available() override {  return usb_data_available(); }
+  inline uint32_t txspace() override  {   return 255; }
   int16_t read() override;
 
   /* Empty implementations of Print virtual methods */

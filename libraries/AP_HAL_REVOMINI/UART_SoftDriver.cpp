@@ -111,10 +111,6 @@ void SerialDriver::rxSetCompare(){
 
 
 
-void SerialDriver::begin(uint32_t baud, uint16_t rxS, uint16_t txS) {
-    begin(baud);
-}
-
 void SerialDriver::end() {
     timer_pause(channel->timer);
     REVOMINIGPIO::_write(TX_PIN, 1);
@@ -126,9 +122,6 @@ void SerialDriver::flush() {
     receiveBufferRead = receiveBufferWrite = 0;
 }
 
-void SerialDriver::set_blocking_writes(bool blocking) {
-    _blocking=blocking;
-}
 
 bool SerialDriver::tx_pending() {
     if(!_initialized) return 0;

@@ -36,7 +36,7 @@
 #include "gpio_hal.h"
 #include "hal_types.h"
 #include "boards.h"
-#include <wirish_time.h>
+//#include <wirish_time.h>
 
 
 
@@ -112,7 +112,7 @@ typedef enum WiringPinMode {
  *         conversion).
  * @see pinMode()
  */
-uint16_t analogRead(uint8_t pin);
+//uint16_t analogRead(uint8_t pin);
 
 /**
  * Toggles the digital value at the given pin.
@@ -124,7 +124,7 @@ uint16_t analogRead(uint8_t pin);
  *
  * @see pinMode()
  */
-void togglePin(uint8_t pin);
+//void togglePin(uint8_t pin);
 
 /**
  * Shift out a byte of data, one bit at a time.
@@ -140,6 +140,6 @@ void togglePin(uint8_t pin);
  * @param bitOrder Either MSBFIRST (big-endian) or LSBFIRST (little-endian).
  * @param value    Value to shift out
  */
-void shiftOut(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t value);
+//void shiftOut(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint8_t value);
 
 #endif

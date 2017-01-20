@@ -26,6 +26,7 @@
 * micros() call uses 32-bit hardware timer instead of systick_micros()
 * added parameters support for HAL
 * OneShot supported
+* added descriptors for all internal hardware
 * ...
 * a lot of minor enhancements
 

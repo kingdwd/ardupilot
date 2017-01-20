@@ -68,7 +68,7 @@ typedef enum ExtIntTriggerMode {
  *  @sideeffect Registers a handler
  *  @see detachInterrupt()
  */
-void attachInterrupt(uint8_t pin, voidFuncPtr handler, ExtIntTriggerMode mode);
+//void attachInterrupt(uint8_t pin, voidFuncPtr handler, ExtIntTriggerMode mode);
 
 /**
  * @brief Disable any registered external interrupt.

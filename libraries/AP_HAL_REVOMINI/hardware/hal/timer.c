@@ -153,6 +153,44 @@ const timer_dev timer8 = {
     .id           = 8,
 }; /** Timer 8 device (advanced) */
 
+
+TimerHandler tim9_handlers[NR_GEN_HANDLERS]={0};
+const timer_dev timer9 = {
+    .regs         = TIM9,
+    .clk          = RCC_APB2Periph_TIM9,
+    .handlers     = tim9_handlers,
+    .af           = GPIO_AF_TIM9,
+    .type         = TIMER_GENERAL,
+    .n_handlers   = NR_GEN_HANDLERS,
+    .bus          = 0,
+    .id           = 9,
+};
+
+TimerHandler tim10_handlers[NR_GEN_HANDLERS]={0};
+const timer_dev timer10 = {
+    .regs         = TIM10,
+    .clk          = RCC_APB2Periph_TIM10,
+    .handlers     = tim10_handlers,
+    .af           = GPIO_AF_TIM10,
+    .type         = TIMER_GENERAL,
+    .n_handlers   = NR_GEN_HANDLERS,
+    .bus          = 0,
+    .id           = 10,
+};
+
+TimerHandler tim11_handlers[NR_GEN_HANDLERS]={0};
+const timer_dev timer11 = {
+    .regs         = TIM11,
+    .clk          = RCC_APB2Periph_TIM11,
+    .handlers     = tim11_handlers,
+    .af           = GPIO_AF_TIM11,
+    .type         = TIMER_GENERAL,
+    .n_handlers   = NR_GEN_HANDLERS,
+    .bus          = 0,
+    .id           = 11,
+};
+
+
 TimerHandler tim12_handlers[NR_GEN_HANDLERS]={0};
 const timer_dev timer12 = {
     .regs         = TIM12,
@@ -165,6 +203,32 @@ const timer_dev timer12 = {
     .id           = 12,
 }; /** Timer 12 device (general-purpose) */
 
+
+TimerHandler tim13_handlers[NR_GEN_HANDLERS]={0};
+const timer_dev timer13 = {
+    .regs         = TIM13,
+    .clk          = RCC_APB1Periph_TIM13,
+    .handlers     = tim13_handlers,
+    .af           = GPIO_AF_TIM13,
+    .type         = TIMER_GENERAL,
+    .n_handlers   = NR_GEN_HANDLERS,
+    .bus          = 0,
+    .id           = 13,
+};
+
+TimerHandler tim14_handlers[NR_GEN_HANDLERS]={0};
+const timer_dev timer14 = {
+    .regs         = TIM14,
+    .clk          = RCC_APB1Periph_TIM14,
+    .handlers     = tim14_handlers,
+    .af           = GPIO_AF_TIM14,
+    .type         = TIMER_GENERAL,
+    .n_handlers   = NR_GEN_HANDLERS,
+    .bus          = 0,
+    .id           = 14,
+};
+
+
 const timer_dev * const TIMER1 = &timer1;
 const timer_dev * const TIMER2 = &timer2;
 const timer_dev * const TIMER3 = &timer3;
@@ -173,7 +237,12 @@ const timer_dev * const TIMER5 = &timer5;
 const timer_dev * const TIMER6 = &timer6;
 const timer_dev * const TIMER7 = &timer7;
 const timer_dev * const TIMER8 = &timer8;
+const timer_dev * const TIMER9 = &timer9;
+const timer_dev * const TIMER10 = &timer10;
+const timer_dev * const TIMER11 = &timer11;
 const timer_dev * const TIMER12 = &timer12;
+const timer_dev * const TIMER13 = &timer13;
+const timer_dev * const TIMER14 = &timer14;
 
 
 /*
@@ -229,7 +298,7 @@ void timer_disable(const timer_dev *dev) {
     dev->regs->DIER = 0;
 
     switch (dev->type) {
-    case TIMER_ADVANCED:        /* fall-through */
+    case TIMER_ADVANCED:
     case TIMER_GENERAL:
         (dev->regs)->CCER = 0;
         break;
@@ -241,7 +310,7 @@ void timer_disable(const timer_dev *dev) {
 
 // initial configuration - set required frequency (in kHz) and period (in ticks) 
 // returns real timers freq
-uint32_t configTimeBase(const timer_dev *dev , uint16_t period, uint16_t khz)
+uint32_t configTimeBase(const timer_dev *dev, uint16_t period, uint16_t khz)
 {
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
     TIM_TypeDef *tim = dev->regs;
@@ -268,7 +337,7 @@ uint32_t configTimeBase(const timer_dev *dev , uint16_t period, uint16_t khz)
         tf  = SystemCoreClock / 2;
     }
 
-    prescaler = ((tf + freq/4) / freq) - 1;
+    prescaler = ((tf + freq/4) / freq) - 1; // ==41 for 2MHz
     
     TIM_TimeBaseStructure.TIM_Prescaler = prescaler;
     freq = tf / prescaler;
@@ -283,16 +352,16 @@ uint32_t configTimeBase(const timer_dev *dev , uint16_t period, uint16_t khz)
         // fall-through
     case TIMER_GENERAL:
 
-        TIM_SelectOCxM(tim, TIM_Channel_1, TIM_OCMode_PWM1);    // set all channels to PWM mode
+        TIM_SelectOCxM(tim, TIM_Channel_1, BOARD_PWM_MODE);    // set all channels to PWM mode
         TIM_OC1PreloadConfig(tim, TIM_OCPreload_Enable);
 
-        TIM_SelectOCxM(tim, TIM_Channel_2, TIM_OCMode_PWM1);
+        TIM_SelectOCxM(tim, TIM_Channel_2, BOARD_PWM_MODE);
         TIM_OC2PreloadConfig(tim, TIM_OCPreload_Enable);
 
-        TIM_SelectOCxM(tim, TIM_Channel_3, TIM_OCMode_PWM1);
+        TIM_SelectOCxM(tim, TIM_Channel_3, BOARD_PWM_MODE);
         TIM_OC3PreloadConfig(tim, TIM_OCPreload_Enable);
 
-        TIM_SelectOCxM(tim, TIM_Channel_4, TIM_OCMode_PWM1);
+        TIM_SelectOCxM(tim, TIM_Channel_4, BOARD_PWM_MODE);
         TIM_OC4PreloadConfig(tim, TIM_OCPreload_Enable);
         break;
 
@@ -304,6 +373,47 @@ uint32_t configTimeBase(const timer_dev *dev , uint16_t period, uint16_t khz)
 //    timer_resume(dev); - leave stopped to tune up later
     
     return freq;
+}
+
+
+// for PWN on advanced timers
+void pwmOCConfig(const timer_dev *dev, uint8_t channel, uint8_t flags)
+{
+    TIM_TypeDef *tim = dev->regs;
+    
+    TIM_OCInitTypeDef  TIM_OCInitStructure;
+
+    TIM_OCStructInit(&TIM_OCInitStructure);
+    TIM_OCInitStructure.TIM_OCMode = BOARD_PWM_MODE;
+    if (flags & TIMER_OUTPUT_N_CHANNEL) {
+        TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Disable;
+        TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Enable;
+    } else {
+        TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
+        TIM_OCInitStructure.TIM_OutputNState = TIM_OutputNState_Disable;
+    }
+    TIM_OCInitStructure.TIM_Pulse = 0; // value will be later
+    TIM_OCInitStructure.TIM_OCPolarity = (flags & TIMER_OUTPUT_INVERTED) ? TIM_OCPolarity_High : TIM_OCPolarity_Low;
+    TIM_OCInitStructure.TIM_OCIdleState = TIM_OCIdleState_Set;
+
+    switch (channel) {
+    case TIM_Channel_1:
+        TIM_OC1Init(tim, &TIM_OCInitStructure);
+        TIM_OC1PreloadConfig(tim, TIM_OCPreload_Enable);
+        break;
+    case TIM_Channel_2:
+        TIM_OC2Init(tim, &TIM_OCInitStructure);
+        TIM_OC2PreloadConfig(tim, TIM_OCPreload_Enable);
+        break;
+    case TIM_Channel_3:
+        TIM_OC3Init(tim, &TIM_OCInitStructure);
+        TIM_OC3PreloadConfig(tim, TIM_OCPreload_Enable);
+        break;
+    case TIM_Channel_4:
+        TIM_OC4Init(tim, &TIM_OCInitStructure);
+        TIM_OC4PreloadConfig(tim, TIM_OCPreload_Enable);
+        break;
+    }
 }
 
 /**
@@ -430,20 +540,25 @@ void TIM8_TRG_COM_TIM14_IRQHandler(void);
 void TIM1_BRK_TIM9_IRQHandler(void)
 {
     dispatch_adv_brk(TIMER1);
+    dispatch_general_h(TIMER9);
+
 }
 
 void TIM1_UP_TIM10_IRQHandler(void) {
     dispatch_adv_up(TIMER1);
+    dispatch_general_h(TIMER10);
 }
 
 void TIM1_TRG_COM_TIM11_IRQHandler(void) {
     dispatch_adv_trg_com(TIMER1);
+    dispatch_general_h(TIMER11);
+
 }
 
 void TIM1_CC_IRQHandler(void) {
     dispatch_adv_cc(TIMER1);
 }
-//*/
+
 void TIM2_IRQHandler(void) {
     dispatch_general(TIMER2);
 }
@@ -455,7 +570,7 @@ void TIM3_IRQHandler(void) {
 void TIM4_IRQHandler(void) {
     dispatch_general(TIMER4);
 }
-//
+
 void TIM5_IRQHandler(void) {
     dispatch_general(TIMER5);
 }
@@ -463,7 +578,7 @@ void TIM5_IRQHandler(void) {
 void TIM6_DAC_IRQHandler(void) {
     dispatch_basic(TIMER6);
 }
-//
+
 void TIM7_IRQHandler(void) {
     dispatch_basic(TIMER7);
 }
@@ -477,14 +592,18 @@ void TIM8_BRK_TIM12_IRQHandler(void) { // used in PWM tim12
 void TIM8_CC_IRQHandler(void) { // used in PWM tim8
     dispatch_adv_cc(TIMER8);
 }
-//
+
 
 void TIM8_UP_TIM13_IRQHandler(void) { // not conflicts with PWM
     dispatch_adv_up(TIMER8);
+    dispatch_general_h(TIMER13);
+
 }
 
 void TIM8_TRG_COM_TIM14_IRQHandler(void) {
     dispatch_adv_trg_com(TIMER8);
+    dispatch_general_h(TIMER14);
+
 }
 
   
@@ -646,7 +765,27 @@ static void disable_channel(const timer_dev *dev, uint8_t channel) {
 
 static void pwm_mode(const timer_dev *dev, uint8_t channel) {
     timer_disable_irq(dev, channel);
-    timer_oc_set_mode(dev, channel, TIMER_OC_MODE_PWM_1, TIMER_OC_PE);
+//    timer_oc_set_mode(dev, channel, TIMER_OC_MODE_PWM_1, TIMER_OC_PE);
+    switch (channel){
+    case 1:
+        TIM_SelectOCxM(dev->regs, TIM_Channel_1, BOARD_PWM_MODE);
+        TIM_OC1PreloadConfig(dev->regs, TIM_OCPreload_Enable);
+        break;
+    case 2:
+        TIM_SelectOCxM(dev->regs, TIM_Channel_2, BOARD_PWM_MODE);
+        TIM_OC2PreloadConfig(dev->regs, TIM_OCPreload_Enable);
+        break;
+
+    case 3:
+        TIM_SelectOCxM(dev->regs, TIM_Channel_3, BOARD_PWM_MODE);
+        TIM_OC3PreloadConfig(dev->regs, TIM_OCPreload_Enable);
+        break;
+
+    case 4:
+        TIM_SelectOCxM(dev->regs, TIM_Channel_4, BOARD_PWM_MODE);
+        TIM_OC4PreloadConfig(dev->regs, TIM_OCPreload_Enable);
+        break;
+    }
 
     timer_cc_enable(dev, channel);
 }
@@ -657,20 +796,39 @@ static void output_compare_mode(const timer_dev *dev, uint8_t channel) {
 }
 
 static void enable_advanced_irq(const timer_dev *dev, timer_interrupt_id id, uint8_t priority);
-static void enable_nonmuxed_irq(const timer_dev *dev, uint8_t priority);
 
 static inline void enable_irq(const timer_dev *dev, timer_interrupt_id iid, uint8_t priority) {
-    if (dev->type == TIMER_ADVANCED) {
-        enable_advanced_irq(dev, iid, priority);
-    } else {
-        enable_nonmuxed_irq(dev, priority);
+
+    IRQn_Type irq;
+
+    switch(dev->id){
+    case 1: /* 1 - advanced */          enable_advanced_irq(dev, iid, priority); return;
+    case 2: irq=TIM2_IRQn; break;
+    case 3: irq=TIM3_IRQn; break;
+    case 4: irq=TIM4_IRQn; break;
+    case 5: irq=TIM5_IRQn; break;
+    case 6: irq=TIM6_DAC_IRQn;  break;
+    case 7: irq=TIM7_IRQn; break;
+    case 8: /* 8 - advanced */          enable_advanced_irq(dev, iid, priority); return;
+    case 9: irq=TIM1_BRK_TIM9_IRQn; break;
+    case 10: irq=TIM1_UP_TIM10_IRQn; break;
+    case 11: irq=TIM1_TRG_COM_TIM11_IRQn; break;
+    case 12: irq=TIM8_BRK_TIM12_IRQn; break;
+    case 13: irq=TIM8_UP_TIM13_IRQn; break;
+    case 14: irq=TIM8_TRG_COM_TIM14_IRQn; break;
+    
+    default: return;
     }
+
+    NVIC_EnableIRQ(irq);
+    NVIC_SetPriority(irq,priority);
+
 }
 
 static void enable_advanced_irq(const timer_dev *dev, timer_interrupt_id id, uint8_t priority) {
     uint8_t is_timer1 = (dev->id == 1);
 
-    IRQn_Type irq;
+    IRQn_Type irq=0;
     
     switch (id) {
     case TIMER_UPDATE_INTERRUPT:
@@ -690,23 +848,8 @@ static void enable_advanced_irq(const timer_dev *dev, timer_interrupt_id id, uin
         irq = is_timer1 ? TIM1_BRK_TIM9_IRQn : TIM8_BRK_TIM12_IRQn;
         break;
     }
+    if(!irq) return;
     NVIC_EnableIRQ(irq);
     NVIC_SetPriority(irq,priority);
 }
 
-static void enable_nonmuxed_irq(const timer_dev *dev, uint8_t priority) {
-    IRQn_Type irq;
-
-    switch(dev->id){
-    case 2: irq=TIM2_IRQn; break;
-    case 3: irq=TIM3_IRQn; break;
-    case 4: irq=TIM4_IRQn; break;
-    case 5: irq=TIM5_IRQn; break;
-    case 6: irq=TIM6_DAC_IRQn;  break;
-    case 7: irq=TIM7_IRQn; break;
-    default: return;
-    }
-
-    NVIC_EnableIRQ(irq);
-    NVIC_SetPriority(irq,priority);
-}
