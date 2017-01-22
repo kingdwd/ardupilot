@@ -91,7 +91,7 @@
 # define BOARD_LED_OFF          HIGH
 
 
-#define BOARD_NR_GPIO_PINS      108
+#define BOARD_NR_GPIO_PINS      109
 
 
 #define BOARD_I2C_BUS_INT 0  // hardware I2C
@@ -121,6 +121,7 @@
 # define BOARD_BATTERY_CURR_PIN     7   // Battery current on A1 (PC1) D7
 # define BOARD_SONAR_SOURCE_ANALOG_PIN 254
 
+#define BOARD_USB_DMINUS 108
 
 // motor layouts
 #define REVO_MOTORS_ARDUCOPTER 0

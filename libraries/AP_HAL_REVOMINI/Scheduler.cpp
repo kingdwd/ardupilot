@@ -11,6 +11,8 @@
 
 #include "GPIO.h"
 
+#include <usb.h>
+
 
 
 /*
@@ -18,17 +20,17 @@
 stats for Copter
 
 Scheduler stats:
-  % of full time: 24.56  Efficiency 0.957 
-delay times: in main 86.09 including in semaphore  0.00  in timer  4.89 in isr  0.00 
-Task times:
-task 0x808FFB1200074C4 tim      0.0 int 0.000% tot 0.0000% mean time   0.0  max 1
-task 0x8090BB1200074F0 tim    293.6 int 2.321% tot 0.5701% mean time   8.3  max 18
-task 0x808B07D200073E8 tim      1.8 int 0.014% tot 0.0035% mean time   0.9  max 3
-task 0x804206720009438 tim   1711.7 int 13.532% tot 3.3244% mean time 442.5 max 445
-task 0x804403720009900 tim   1845.0 int 14.586% tot 3.5834% mean time 632.1 max 867
-task 0x804AEDD200099F0 tim   8797.0 int 69.547% tot 17.0855% mean time 265.9 max 3474
 
-max loop time 4800uS
+  % of full time: 26.79  Efficiency 0.924 max loop time 2904 
+delay times: in main 85.83 including in semaphore  0.00  in timer  7.71 in isr  0.00 
+
+Task times:
+task 0x809966920008114 tim      0.0 int 0.000% tot 0.0000% mean time   1.0 max time 1
+task 0x809A8252000811C tim    493.0 int 3.680% tot 0.9859% mean time   9.9 max time 22
+task 0x809376D20007FE0 tim      2.6 int 0.019% tot 0.0051% mean time   1.0 max time 3
+task 0x804667520009F68 tim   2167.8 int 16.180% tot 4.3357% mean time 436.9 max time 452
+task 0x8048D7D2000A480 tim   2996.4 int 22.365% tot 5.9929% mean time 852.0 max time 864
+task 0x80509812000A4E0 tim   7738.1 int 57.756% tot 15.4763% mean time 172.4 max time 2462
 
 */
 
@@ -344,6 +346,26 @@ void REVOMINIScheduler::reboot(bool hold_in_bootloader) {
     if(hold_in_bootloader) {
 #if 1
         if((uint32_t)&__isr_vector_start == 0x08000000) { // bare metal build without bootloader
+
+            //usbDeviceDisconnect();  /* вызываем перенумерацию устройств USB. Прерывания должны быть запрещены ! */
+//            NVIC->ICER[OTG_FS_IRQn / 32] = BIT(OTG_FS_IRQn % 32); //nvic_irq_disable(NVIC_OTG_FS_IRQ);
+            
+            usb_close();
+            //USB_OTG_dev.regs.GREGS->GCCFG = 0;
+
+            _delay(50);
+            noInterrupts();
+            
+            usb_disconnect();            
+        
+/*
+            gpio_set_mode(   PIN_MAP[BOARD_USB_DMINUS].gpio_device, PIN_MAP[BOARD_USB_DMINUS].gpio_bit, GPIO_OUTPUT_PP);
+            GPIO_PinAFConfig(PIN_MAP[BOARD_USB_DMINUS].gpio_device->GPIOx, PIN_MAP[BOARD_USB_DMINUS].gpio_bit, 0);
+            gpio_write_bit(  PIN_MAP[BOARD_USB_DMINUS].gpio_device, PIN_MAP[BOARD_USB_DMINUS].gpio_bit, 1);
+*/
+            _delay(250);         /* вызываем таймаут */
+//            usb_open();
+
             // Reboot to BootROM - to DFU mode
             asm volatile("\
     ldr     r0, =0x1FFF0000\n\

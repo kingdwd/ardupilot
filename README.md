@@ -26,6 +26,10 @@
 * removed unused files from "wirish" folder
 * added support for baro MS5611 on external I2C
 * micros() call uses 32-bit hardware timer instead of systick_micros()
+* added translation layer between system PWM_MODES and board's PWM_MODES
+* added initial support for DMA
+* added support for all timers
+* supported reboot to DFU mode
 * ...
 * a lot of minor enhancements
 

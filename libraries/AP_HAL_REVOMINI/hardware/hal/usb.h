@@ -7,6 +7,11 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+  extern "C" {
+#endif
+
+
 #include "../STM32_USB_Driver/usb_bsp.h"
 #include "../STM32_USB_Driver/usb_regs.h"
 #include "../STM32_USB_Driver/usbd_conf.h"
@@ -20,6 +25,9 @@
 #include "../STM32_USB_Driver/ring_buff.h"
 #include "../STM32_USB_Driver/min_max.h"
 
+#ifdef __cplusplus
+  }
+#endif
 
 
 
@@ -85,6 +93,9 @@ typedef struct {
   extern "C" {
 #endif
 
+
+extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
+
 /* functions */
 int usb_open(void);
 int usb_close(void);
@@ -92,6 +103,9 @@ int usb_ioctl(int request, void * ctl);
 int usb_read(void  * buf, unsigned int nbytes);
 void usb_default_attr(usb_attr_t *attr);
 int usb_configure(usb_attr_t * attr);
+
+void USB_OTG_BSP_mDelay (const uint32_t msec);
+
 
 
 int usb_write(uint8_t *buf, unsigned int nbytes);
@@ -109,6 +123,29 @@ static inline uint8_t usb_getc(void){ uint8_t c;  usb_read(&c, 1);  return c; }
 uint16_t usb_tx_pending(void);
 
 
+static inline void usb_disconnect(){
+//    (__IO USB_OTG_GREGS *)(USB_OTG_FS_BASE_ADDR + USB_OTG_CORE_GLOBAL_REGS_OFFSET)->GCCFG = 0;
+//    (__IO USB_OTG_GREGS *)(USB_OTG_HS_BASE_ADDR + USB_OTG_CORE_GLOBAL_REGS_OFFSET)->GCCFG = 0;
+    
+//    USB_OTG_dev.regs.GREGS->GCCFG = 0;
+
+
+    USB_OTG_DCTL_TypeDef dctl, dctl0;
+ 
+//  dctl.d32 = USB_OTG_READ_REG32(&USB_OTG_FS_regs.DEV->DCTL);
+    dctl.d32 = USB_OTG_dev.regs.DREGS->DCTL;
+
+    dctl0=dctl;
+
+    /* Disconnect device for 20ms */
+    dctl.b.sftdiscon  = 1;
+//  USB_OTG_WRITE_REG32(&USB_OTG_FS_regs.DEV->DCTL, dctl.d32);
+    USB_OTG_dev.regs.DREGS->DCTL = dctl.d32;
+    
+    USB_OTG_BSP_mDelay(250);
+
+    USB_OTG_dev.regs.DREGS->DCTL = dctl0.d32;
+}
 
 #define DEFAULT_CONFIG                  0
 #define OTHER_CONFIG                    1
