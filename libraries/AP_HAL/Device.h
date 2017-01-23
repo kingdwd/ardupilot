@@ -38,8 +38,8 @@ public:
         SPEED_LOW,
     };
 
-    FUNCTOR_TYPEDEF(PeriodicCb, void);
-    typedef void* PeriodicHandle;
+    FUNCTOR_TYPEDEF(PeriodicCb, bool);
+    typedef bool* PeriodicHandle;
 
     Device(enum BusType type)
     {
@@ -136,7 +136,15 @@ public:
         if (checked) {
             set_checked_register(reg, val);
         }
-        return transfer(buf, sizeof(buf), nullptr, 0);
+        bool ret = transfer(buf, sizeof(buf), nullptr, 0);
+        
+        if(ret) {
+            ret = read_registers(reg, buf, 1);   // read out
+        }
+        
+        if(ret) ret = buf[0] == val; // and check if equal
+        
+        return ret;
     }
 
     /**

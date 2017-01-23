@@ -1,4 +1,5 @@
 #include <AP_Gripper/AP_Gripper_Servo.h>
+#include <AP_HAL/AP_HAL.h>
 
 extern const AP_HAL::HAL& hal;
 

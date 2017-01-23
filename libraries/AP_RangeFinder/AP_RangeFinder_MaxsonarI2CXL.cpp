@@ -90,7 +90,7 @@ bool AP_RangeFinder_MaxsonarI2CXL::_init(void)
     _dev->get_semaphore()->give();
     
     _dev->register_periodic_callback(50000,
-                                     FUNCTOR_BIND_MEMBER(&AP_RangeFinder_MaxsonarI2CXL::_timer, void));
+                                     FUNCTOR_BIND_MEMBER(&AP_RangeFinder_MaxsonarI2CXL::_timer, bool));
     
     return true;
 }
@@ -126,7 +126,7 @@ bool AP_RangeFinder_MaxsonarI2CXL::get_reading(uint16_t &reading_cm)
 /*
   timer called at 20Hz
 */
-void AP_RangeFinder_MaxsonarI2CXL::_timer(void)
+bool AP_RangeFinder_MaxsonarI2CXL::_timer(void)
 {
     uint16_t d;
     if (get_reading(d)) {
@@ -136,6 +136,8 @@ void AP_RangeFinder_MaxsonarI2CXL::_timer(void)
             _sem->give();
         }
     }
+    return true;
+    
 }
 
 

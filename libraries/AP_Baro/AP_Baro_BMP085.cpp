@@ -81,16 +81,16 @@ AP_Baro_BMP085::AP_Baro_BMP085(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::I2CDevice> 
 
     sem->give();
 
-    _dev->register_periodic_callback(20000, FUNCTOR_BIND_MEMBER(&AP_Baro_BMP085::_timer, void));
+    _dev->register_periodic_callback(20000, FUNCTOR_BIND_MEMBER(&AP_Baro_BMP085::_timer, bool));
 }
 
 /*
   This is a state machine. Acumulate a new sensor reading.
  */
-void AP_Baro_BMP085::_timer(void)
+bool AP_Baro_BMP085::_timer(void)
 {
     if (!_data_ready()) {
-        return;
+        return false;
     }
 
     if (_state == 0) {
@@ -106,6 +106,8 @@ void AP_Baro_BMP085::_timer(void)
     } else {
         _cmd_read_pressure();
     }
+    
+    return true;
 }
 
 /*

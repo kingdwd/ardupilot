@@ -98,12 +98,12 @@ private:
     /**
      * Device periodic callback to read data from the sensors.
      */
-    void _poll_data();
+    bool _poll_data();
 
     /**
      * Read samples from fifo.
      */
-    void _read_fifo();
+    bool _read_fifo();
 
     AP_HAL::OwnPtr<AP_HAL::Device> _dev;
 

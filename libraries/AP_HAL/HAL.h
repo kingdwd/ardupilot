@@ -1,5 +1,7 @@
 #pragma once
 
+class AP_Param;
+
 #include "AP_HAL_Namespace.h"
 
 #include "AnalogIn.h"
@@ -11,6 +13,10 @@
 #include "UARTDriver.h"
 #include "system.h"
 #include "OpticalFlow.h"
+
+#include <AP_Param/AP_Param.h>
+
+class AP_Param_Helper;
 
 class AP_HAL::HAL {
 public:
@@ -53,6 +59,8 @@ public:
         AP_HAL::init();
     }
 
+    ~HAL(){};
+
     struct Callbacks {
         virtual void setup() = 0;
         virtual void loop() = 0;
@@ -64,7 +72,7 @@ public:
         void setup() override { _setup(); }
         void loop() override { _loop(); }
 
-    private:
+private:
         void (*_setup)(void);
         void (*_loop)(void);
     };

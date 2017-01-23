@@ -19,7 +19,7 @@ private:
     AP_RangeFinder_LightWareI2C(RangeFinder &ranger, uint8_t instance, RangeFinder::RangeFinder_State &_state, AP_HAL::OwnPtr<AP_HAL::I2CDevice> dev);
 
     void init();
-    void timer();
+    bool timer();
 
     // get a reading
     bool get_reading(uint16_t &reading_cm);

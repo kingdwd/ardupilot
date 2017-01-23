@@ -77,19 +77,19 @@ private:
     bool _has_auxiliary_bus();
 
     /* Read samples from FIFO (FIFO enabled) */
-    void _read_fifo();
+    bool _read_fifo();
 
     /* Check if there's data available by either reading DRDY pin or register */
     bool _data_ready();
 
     /* Poll for new data (non-blocking) */
-    void _poll_data();
+    bool _poll_data();
 
     /* Read and write functions taking the differences between buses into
      * account */
     bool _block_read(uint8_t reg, uint8_t *buf, uint32_t size);
     uint8_t _register_read(uint8_t reg);
-    void _register_write(uint8_t reg, uint8_t val, bool checked=false);
+    bool _register_write(uint8_t reg, uint8_t val, bool checked=false);
 
     bool _accumulate(uint8_t *samples, uint8_t n_samples);
     bool _accumulate_fast_sampling(uint8_t *samples, uint8_t n_samples);

@@ -88,7 +88,7 @@ bool AP_OpticalFlow_PX4Flow::setup_sensor(void)
         return false;
     }
     // read at 10Hz
-    dev->register_periodic_callback(100000, FUNCTOR_BIND_MEMBER(&AP_OpticalFlow_PX4Flow::timer, void));
+    dev->register_periodic_callback(100000, FUNCTOR_BIND_MEMBER(&AP_OpticalFlow_PX4Flow::timer, bool));
     return true;
 }
 
@@ -99,11 +99,11 @@ void AP_OpticalFlow_PX4Flow::update(void)
 }
 
 // timer to read sensor
-void AP_OpticalFlow_PX4Flow::timer(void)
+bool AP_OpticalFlow_PX4Flow::timer(void)
 {
     struct i2c_integral_frame frame;
     if (!dev->read_registers(REG_INTEGRAL_FRAME, (uint8_t *)&frame, sizeof(frame))) {
-        return;
+        return true;
     }
     struct OpticalFlow::OpticalFlow_state state {};
     state.device_id = get_bus_id();
@@ -124,4 +124,6 @@ void AP_OpticalFlow_PX4Flow::timer(void)
     }
 
     _update_frontend(state);
+
+        return true;
 }

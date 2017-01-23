@@ -29,7 +29,7 @@ private:
                                  RangeFinder::RangeFinder_State &_state);
 
     bool _init(void);
-    void _timer(void);
+    bool _timer(void);
 
     uint16_t distance;
     bool new_distance;

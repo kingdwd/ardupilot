@@ -185,7 +185,7 @@ void AP_InertialSensor_BMI160::start()
 
     /* Call _poll_data() at 1kHz */
     _dev->register_periodic_callback(1000,
-        FUNCTOR_BIND_MEMBER(&AP_InertialSensor_BMI160::_poll_data, void));
+        FUNCTOR_BIND_MEMBER(&AP_InertialSensor_BMI160::_poll_data, bool));
 }
 
 bool AP_InertialSensor_BMI160::update()
@@ -332,7 +332,7 @@ bool AP_InertialSensor_BMI160::_configure_fifo()
     return true;
 }
 
-void AP_InertialSensor_BMI160::_read_fifo()
+bool AP_InertialSensor_BMI160::_read_fifo()
 {
     struct RawData raw_data[BMI160_MAX_FIFO_SAMPLES];
     uint16_t num_bytes;
@@ -415,11 +415,13 @@ read_fifo_end:
     if (!r) {
         hal.console->printf("BMI160: error on reading FIFO\n");
     }
+    
+    return true;
 }
 
-void AP_InertialSensor_BMI160::_poll_data()
+bool AP_InertialSensor_BMI160::_poll_data()
 {
-    _read_fifo();
+    return _read_fifo();
 }
 
 bool AP_InertialSensor_BMI160::_hardware_init()

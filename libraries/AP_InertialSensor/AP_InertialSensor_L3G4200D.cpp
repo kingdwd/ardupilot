@@ -211,7 +211,7 @@ void AP_InertialSensor_L3G4200D::start(void)
     _accel_instance = _imu.register_accel(800, _dev->get_bus_id_devtype(DEVTYPE_L3G4200D));
 
     // start the timer process to read samples
-    _dev->register_periodic_callback(1250, FUNCTOR_BIND_MEMBER(&AP_InertialSensor_L3G4200D::_accumulate, void));
+    _dev->register_periodic_callback(1250, FUNCTOR_BIND_MEMBER(&AP_InertialSensor_L3G4200D::_accumulate, bool));
 }
 
 /*

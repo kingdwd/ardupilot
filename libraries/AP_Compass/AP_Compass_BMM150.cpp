@@ -190,7 +190,7 @@ bool AP_Compass_BMM150::init()
     set_dev_id(_compass_instance, _dev->get_bus_id());
 
     _dev->register_periodic_callback(MEASURE_TIME_USEC,
-            FUNCTOR_BIND_MEMBER(&AP_Compass_BMM150::_update, void));
+            FUNCTOR_BIND_MEMBER(&AP_Compass_BMM150::_update, bool));
 
     return true;
 
@@ -237,7 +237,7 @@ int16_t AP_Compass_BMM150::_compensate_z(int16_t z, uint32_t rhall)
     return constrain_int32(dividend / divisor, -0x8000, 0x8000);
 }
 
-void AP_Compass_BMM150::_update()
+bool AP_Compass_BMM150::_update()
 {
     const uint32_t time_usec = AP_HAL::micros();
 
@@ -246,7 +246,7 @@ void AP_Compass_BMM150::_update()
 
     /* Checking data ready status */
     if (!ret || !(data[3] & 0x1)) {
-        return;
+        return false;
     }
 
     const uint16_t rhall = le16toh(data[3] >> 2);
@@ -272,8 +272,8 @@ void AP_Compass_BMM150::_update()
     /* correct raw_field for known errors */
     correct_field(raw_field, _compass_instance);
 
-    if (!_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
-        return;
+    if (!_sem->take(0)) {
+        return false;
     }
     _mag_accum += raw_field;
     _accum_count++;
@@ -282,6 +282,7 @@ void AP_Compass_BMM150::_update()
         _accum_count = 5;
     }
     _sem->give();
+    return true;
 }
 
 void AP_Compass_BMM150::read()

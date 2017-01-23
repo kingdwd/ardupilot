@@ -39,7 +39,7 @@ private:
     bool _calibrate();
     bool _setup_sampling_mode();
 
-    void _timer();
+    bool _timer();
 
     /* Read a single sample */
     bool _read_sample();

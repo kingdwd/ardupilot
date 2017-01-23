@@ -122,6 +122,9 @@
 #include "afs_copter.h"
 #endif
 
+#include <AP_Param_Helper/AP_Param_Helper.h>
+
+
 // Local modules
 #include "Parameters.h"
 #include "avoidance_adsb.h"
@@ -130,6 +133,8 @@
 #include <SITL/SITL.h>
 #endif
 
+
+extern const AP_HAL::HAL& hal;
 
 class Copter : public AP_HAL::HAL::Callbacks {
 public:
@@ -183,6 +188,8 @@ private:
     // Dataflash
     DataFlash_Class DataFlash;
 
+    const AP_HAL::HAL& chal = hal;
+    
     AP_GPS gps;
 
     // flight modes convenience array
@@ -590,6 +597,8 @@ private:
     // Top-level logic
     // setup the var_info table
     AP_Param param_loader;
+
+    AP_Param_Helper param_helper;
 
 #if FRAME_CONFIG == HELI_FRAME
     // Mode filter to reject RC Input glitches.  Filter size is 5, and it draws the 4th element, so it can reject 3 low glitches,

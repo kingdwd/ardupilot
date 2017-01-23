@@ -168,7 +168,7 @@ bool AP_Compass_AK8963::init()
     bus_sem->give();
 
     /* timer needs to be called every 10ms so set the freq_div to 10 */
-    if (!_bus->register_periodic_callback(10000, FUNCTOR_BIND_MEMBER(&AP_Compass_AK8963::_update, void))) {
+    if (!_bus->register_periodic_callback(10000, FUNCTOR_BIND_MEMBER(&AP_Compass_AK8963::_update, bool))) {
         // fallback to timer
         _timesliced = hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_Compass_AK8963::_update_timer, void), 10);
     }
@@ -215,26 +215,26 @@ void AP_Compass_AK8963::_make_factory_sensitivity_adjustment(Vector3f& field) co
     field.z *= _magnetometer_ASA[2];
 }
 
-void AP_Compass_AK8963::_update()
+bool AP_Compass_AK8963::_update()
 {
     struct sample_regs regs;
     Vector3f raw_field;
     uint32_t time_us = AP_HAL::micros();
 
     if (!_bus->block_read(AK8963_HXL, (uint8_t *) &regs, sizeof(regs))) {
-        return;
+        return true;
     }
 
     /* Check for overflow. See AK8963's datasheet, section
      * 6.4.3.6 - Magnetic Sensor Overflow. */
     if ((regs.st2 & 0x08)) {
-        return;
+        return true;
     }
 
     raw_field = Vector3f(regs.val[0], regs.val[1], regs.val[2]);
 
     if (is_zero(raw_field.x) && is_zero(raw_field.y) && is_zero(raw_field.z)) {
-        return;
+        return true;
     }
 
     _make_factory_sensitivity_adjustment(raw_field);
@@ -263,6 +263,8 @@ void AP_Compass_AK8963::_update()
         }
         _sem->give();
     }
+
+    return true;
 }
 
 /*

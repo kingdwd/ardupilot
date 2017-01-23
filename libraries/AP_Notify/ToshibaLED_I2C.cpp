@@ -27,7 +27,7 @@
 extern const AP_HAL::HAL& hal;
 
 #define TOSHIBA_LED_I2C_ADDR 0x55    // default I2C bus address
-#define TOSHIBA_LED_I2C_BUS  1
+// #define TOSHIBA_LED_I2C_BUS  1 - this should be in HAL!
 
 #define TOSHIBA_LED_PWM0    0x01    // pwm0 register
 #define TOSHIBA_LED_PWM1    0x02    // pwm1 register
@@ -53,7 +53,7 @@ bool ToshibaLED_I2C::hw_init()
     // give back i2c semaphore
     _dev->get_semaphore()->give();
 
-    _dev->register_periodic_callback(20000, FUNCTOR_BIND_MEMBER(&ToshibaLED_I2C::_timer, void));
+    _dev->register_periodic_callback(20000, FUNCTOR_BIND_MEMBER(&ToshibaLED_I2C::_timer, bool));
     
     return ret;
 }
@@ -65,10 +65,10 @@ bool ToshibaLED_I2C::hw_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
     return true;
 }
 
-void ToshibaLED_I2C::_timer(void)
+bool ToshibaLED_I2C::_timer(void)
 {
     if (!_need_update) {
-        return;
+        return true;
     }
     _need_update = false;
 
@@ -77,4 +77,7 @@ void ToshibaLED_I2C::_timer(void)
                        (uint8_t)(rgb.g / 16), (uint8_t)(rgb.r / 16) };
 
     _dev->transfer(val, sizeof(val), nullptr, 0);
+
+    return true;
+
 }

@@ -84,7 +84,7 @@ bool AP_Airspeed_MS4525::init()
     _dev->set_retries(2);
     
     _dev->register_periodic_callback(20000,
-                                     FUNCTOR_BIND_MEMBER(&AP_Airspeed_MS4525::_timer, void));
+                                     FUNCTOR_BIND_MEMBER(&AP_Airspeed_MS4525::_timer, bool));
     return true;
 }
 
@@ -173,17 +173,19 @@ void AP_Airspeed_MS4525::_voltage_correction(float &diff_press_pa, float &temper
 }
 
 // 50Hz timer
-void AP_Airspeed_MS4525::_timer()
+bool AP_Airspeed_MS4525::_timer()
 {
     if (_measurement_started_ms == 0) {
         _measure();
-        return;
+        return true;
     }
     if ((AP_HAL::millis() - _measurement_started_ms) > 10) {
         _collect();
         // start a new measurement
         _measure();
     }
+
+    return true;
 }
 
 // return the current differential_pressure in Pascal

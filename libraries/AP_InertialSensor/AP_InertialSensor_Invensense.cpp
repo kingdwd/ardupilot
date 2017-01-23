@@ -163,6 +163,12 @@ extern const AP_HAL::HAL& hal;
 #       define BIT_I2C_SLV1_DLY_EN              0x02
 #       define BIT_I2C_SLV2_DLY_EN              0x04
 #       define BIT_I2C_SLV3_DLY_EN              0x08
+
+#define MPUREG_SIGNAL_PATH_RESET                0x68
+#define BIT_GYRO                       4
+#define BIT_ACC                        2
+#define BIT_TEMP                       1
+
 #define MPUREG_USER_CTRL                        0x6A
 // bit definitions for MPUREG_USER_CTRL
 #       define BIT_USER_CTRL_SIG_COND_RESET         0x01 // resets signal paths and results registers for all sensors (gyros, accel, temp)
@@ -357,7 +363,7 @@ void AP_InertialSensor_Invensense::_fifo_reset()
     _register_write(MPUREG_FIFO_EN, 0);
     _register_write(MPUREG_USER_CTRL, user_ctrl);
     _register_write(MPUREG_USER_CTRL, user_ctrl | BIT_USER_CTRL_FIFO_RESET);
-    _register_write(MPUREG_USER_CTRL, user_ctrl | BIT_USER_CTRL_FIFO_EN);
+    _register_write(MPUREG_USER_CTRL, user_ctrl | BIT_USER_CTRL_FIFO_EN, true);
     _register_write(MPUREG_FIFO_EN, BIT_XG_FIFO_EN | BIT_YG_FIFO_EN |
                     BIT_ZG_FIFO_EN | BIT_ACCEL_FIFO_EN | BIT_TEMP_FIFO_EN, true);
     hal.scheduler->delay_microseconds(1);
@@ -367,12 +373,16 @@ void AP_InertialSensor_Invensense::_fifo_reset()
 
 bool AP_InertialSensor_Invensense::_has_auxiliary_bus()
 {
+#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
     return _dev->bus_type() != AP_HAL::Device::BUS_TYPE_I2C;
+#else 
+    return false;
+#endif
 }
 
 void AP_InertialSensor_Invensense::start()
 {
-    if (!_dev->get_semaphore()->take(0)) {
+    if (!_dev->get_semaphore()->take(10)) {
         return;
     }
 
@@ -380,7 +390,7 @@ void AP_InertialSensor_Invensense::start()
     _dev->set_speed(AP_HAL::Device::SPEED_LOW);
 
     // only used for wake-up in accelerometer only low power mode
-    _register_write(MPUREG_PWR_MGMT_2, 0x00);
+    _register_write(MPUREG_PWR_MGMT_2, 0x00, true);
     hal.scheduler->delay(1);
 
     // always use FIFO
@@ -463,7 +473,7 @@ void AP_InertialSensor_Invensense::start()
     }
 
     // start the timer process to read samples
-    _dev->register_periodic_callback(1000, FUNCTOR_BIND_MEMBER(&AP_InertialSensor_Invensense::_poll_data, void));
+    _dev->register_periodic_callback(1000, FUNCTOR_BIND_MEMBER(&AP_InertialSensor_Invensense::_poll_data, bool));
 }
 
 
@@ -519,9 +529,9 @@ bool AP_InertialSensor_Invensense::_data_ready()
 /*
  * Timer process to poll for new data from the Invensense. Called from bus thread with semaphore held
  */
-void AP_InertialSensor_Invensense::_poll_data()
+bool AP_InertialSensor_Invensense::_poll_data()
 {
-    _read_fifo();
+    return _read_fifo();
 }
 
 bool AP_InertialSensor_Invensense::_accumulate(uint8_t *samples, uint8_t n_samples)
@@ -643,7 +653,7 @@ bool AP_InertialSensor_Invensense::_accumulate_fast_sampling(uint8_t *samples, u
     return ret;
 }
 
-void AP_InertialSensor_Invensense::_read_fifo()
+bool AP_InertialSensor_Invensense::_read_fifo()
 {
     uint8_t n_samples;
     uint16_t bytes_read;
@@ -722,6 +732,8 @@ check_registers:
         _inc_accel_error_count(_accel_instance);
     }
     _dev->set_speed(AP_HAL::Device::SPEED_HIGH);
+    
+    return true;
 }
 
 /*
@@ -753,9 +765,9 @@ uint8_t AP_InertialSensor_Invensense::_register_read(uint8_t reg)
     return val;
 }
 
-void AP_InertialSensor_Invensense::_register_write(uint8_t reg, uint8_t val, bool checked)
+bool AP_InertialSensor_Invensense::_register_write(uint8_t reg, uint8_t val, bool checked)
 {
-    _dev->write_register(reg, val, checked);
+    return _dev->write_register(reg, val, checked);
 }
 
 /*
@@ -806,6 +818,13 @@ void AP_InertialSensor_Invensense::_set_filter_register(void)
 bool AP_InertialSensor_Invensense::_check_whoami(void)
 {
     uint8_t whoami = _register_read(MPUREG_WHOAMI);
+    if(whoami == 0 || whoami == 0xFF){ // register's value was accidentally rewritten
+        _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
+        hal.scheduler->delay(120);
+        whoami = _register_read(MPUREG_WHOAMI);
+    }
+    
+    
     switch (whoami) {
     case MPU_WHOAMI_6000:
         _mpu_type = Invensense_MPU6000;
@@ -830,7 +849,7 @@ bool AP_InertialSensor_Invensense::_hardware_init(void)
     }
 
     // setup for register checking
-    _dev->setup_checked_registers(7, 20);
+    _dev->setup_checked_registers(10, 20);
     
     // initially run the bus at low speed
     _dev->set_speed(AP_HAL::Device::SPEED_LOW);
@@ -856,14 +875,12 @@ bool AP_InertialSensor_Invensense::_hardware_init(void)
 
         /* reset device */
         _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_DEVICE_RESET);
-        hal.scheduler->delay(100);
+        hal.scheduler->delay(120);
 
         /* bus-dependent initialization */
         if (_dev->bus_type() == AP_HAL::Device::BUS_TYPE_SPI) {
-            /* Disable I2C bus if SPI selected (Recommended in Datasheet to be
-             * done just after the device is reset) */
-            _last_stat_user_ctrl |= BIT_USER_CTRL_I2C_IF_DIS;
-            _register_write(MPUREG_USER_CTRL, _last_stat_user_ctrl);
+            _register_write(MPUREG_SIGNAL_PATH_RESET, BIT_GYRO | BIT_ACC | BIT_TEMP); // by datasheet http://elektrologi.kabarkita.org/wp-content/uploads/2015/08/MPU-6000-Register-Map1.pdf 
+            hal.scheduler->delay(120);                                              // page 41
         }
 
         /* bus-dependent initialization */
@@ -875,7 +892,7 @@ bool AP_InertialSensor_Invensense::_hardware_init(void)
         // Wake up device and select GyroZ clock. Note that the
         // Invensense starts up in sleep mode, and it can take some time
         // for it to come out of sleep
-        _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_CLK_ZGYRO);
+        _register_write(MPUREG_PWR_MGMT_1, BIT_PWR_MGMT_1_CLK_ZGYRO, true);
         hal.scheduler->delay(5);
 
         // check it has woken up
@@ -888,6 +905,16 @@ bool AP_InertialSensor_Invensense::_hardware_init(void)
             break;
         }
     }
+
+
+        /* bus-dependent initialization */
+        if (_dev->bus_type() == AP_HAL::Device::BUS_TYPE_SPI) {
+            /* Disable I2C bus if SPI selected (Recommended in Datasheet to be
+             * done just after the device is reset) */
+            _last_stat_user_ctrl |= BIT_USER_CTRL_I2C_IF_DIS;
+            _register_write(MPUREG_USER_CTRL, _last_stat_user_ctrl);
+        }
+
 
     _dev->set_speed(AP_HAL::Device::SPEED_HIGH);
     _dev->get_semaphore()->give();

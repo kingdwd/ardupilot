@@ -96,7 +96,7 @@ bool AP_Airspeed_MS5525::init()
 
     // read at 80Hz
     dev->register_periodic_callback(1000000UL/80U,
-                                    FUNCTOR_BIND_MEMBER(&AP_Airspeed_MS5525::timer, void));
+                                    FUNCTOR_BIND_MEMBER(&AP_Airspeed_MS5525::timer, bool));
     return true;
 }
 
@@ -219,7 +219,7 @@ void AP_Airspeed_MS5525::calculate(void)
 }
 
 // 50Hz timer
-void AP_Airspeed_MS5525::timer()
+bool AP_Airspeed_MS5525::timer()
 {
     uint32_t adc_val = read_adc();
 
@@ -241,10 +241,12 @@ void AP_Airspeed_MS5525::timer()
 
     uint8_t next_cmd = next_state == 0 ? REG_CONVERT_TEMPERATURE : REG_CONVERT_PRESSURE;
     if (!dev->transfer(&next_cmd, 1, nullptr, 0)) {
-        return;
+        return true;
     }
 
     state = next_state;
+
+    return false;
 }
 
 // return the current differential_pressure in Pascal

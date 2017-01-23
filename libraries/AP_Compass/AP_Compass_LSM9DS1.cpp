@@ -113,7 +113,7 @@ bool AP_Compass_LSM9DS1::init()
     _dev->set_device_type(DEVTYPE_LSM9DS1);
     set_dev_id(_compass_instance, _dev->get_bus_id());
 
-    _dev->register_periodic_callback(10000, FUNCTOR_BIND_MEMBER(&AP_Compass_LSM9DS1::_update, void));
+    _dev->register_periodic_callback(10000, FUNCTOR_BIND_MEMBER(&AP_Compass_LSM9DS1::_update, bool));
 
     bus_sem->give();
 
@@ -137,24 +137,24 @@ void AP_Compass_LSM9DS1::_dump_registers()
     hal.console->println();
 }
 
-void AP_Compass_LSM9DS1::_update(void)
+bool AP_Compass_LSM9DS1::_update(void)
 {
     struct sample_regs regs;
     Vector3f raw_field;
     uint32_t time_us = AP_HAL::micros();
 
     if (!_block_read(LSM9DS1M_STATUS_REG_M, (uint8_t *) &regs, sizeof(regs))) {
-        return;
+        return true;
     }
 
     if (regs.status & 0x80) {
-        return;
+        return false;
     }
 
     raw_field = Vector3f(regs.val[0], regs.val[1], regs.val[2]);
 
     if (is_zero(raw_field.x) && is_zero(raw_field.y) && is_zero(raw_field.z)) {
-        return;
+        return true;
     }
 
     raw_field *= _scaling;
@@ -181,6 +181,8 @@ void AP_Compass_LSM9DS1::_update(void)
         }
         _sem->give();
     }
+    return true;
+
 }
 
 void AP_Compass_LSM9DS1::read()
