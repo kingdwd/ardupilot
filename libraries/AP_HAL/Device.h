@@ -39,7 +39,7 @@ public:
     };
 
     FUNCTOR_TYPEDEF(PeriodicCb, bool);
-    typedef void* PeriodicHandle;
+    typedef bool* PeriodicHandle;
 
     Device(enum BusType type)
     {

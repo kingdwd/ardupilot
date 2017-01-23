@@ -89,7 +89,8 @@ bool Display_SSD1306_I2C::_timer()
         _dev->transfer((uint8_t *)&display_buffer, sizeof(display_buffer), nullptr, 0);
     }
 
-    return true;
+        return true;
+
 }
 
 bool Display_SSD1306_I2C::set_pixel(uint16_t x, uint16_t y)

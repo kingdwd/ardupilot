@@ -226,7 +226,7 @@ bool AP_InertialSensor_L3G4200D::update(void)
 }
 
 // Accumulate values from accels and gyros
-bool AP_InertialSensor_L3G4200D::_accumulate(void)
+void AP_InertialSensor_L3G4200D::_accumulate(void)
 {
     uint8_t num_samples_available;
     uint8_t fifo_status = 0;
@@ -279,8 +279,7 @@ bool AP_InertialSensor_L3G4200D::_accumulate(void)
                 _notify_new_accel_raw_sample(_accel_instance, accel);
             }
         }
-    }
-    return true;
+    } 
 }
 
 #endif

@@ -77,7 +77,7 @@ private:
     bool _has_auxiliary_bus();
 
     /* Read samples from FIFO (FIFO enabled) */
-    void _read_fifo();
+    bool _read_fifo();
 
     /* Check if there's data available by either reading DRDY pin or register */
     bool _data_ready();

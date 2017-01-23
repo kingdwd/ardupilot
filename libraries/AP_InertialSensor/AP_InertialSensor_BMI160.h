@@ -103,7 +103,7 @@ private:
     /**
      * Read samples from fifo.
      */
-    void _read_fifo();
+    bool _read_fifo();
 
     AP_HAL::OwnPtr<AP_HAL::Device> _dev;
 

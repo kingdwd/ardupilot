@@ -184,6 +184,7 @@ bool AP_Airspeed_MS4525::_timer()
         // start a new measurement
         _measure();
     }
+
     return true;
 }
 

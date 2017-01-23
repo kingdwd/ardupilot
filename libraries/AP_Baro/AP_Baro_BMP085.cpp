@@ -53,7 +53,7 @@ AP_Baro_BMP085::AP_Baro_BMP085(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::I2CDevice> 
     }
 
     // We read the calibration data registers
-    if (!_dev->read_registers(0xAA, buff, 22)) {
+    if (!_dev->read_registers(0xAA, buff, sizeof(buff))) {
         AP_HAL::panic("BMP085: bad calibration registers");
     }
 
@@ -90,7 +90,7 @@ AP_Baro_BMP085::AP_Baro_BMP085(AP_Baro &baro, AP_HAL::OwnPtr<AP_HAL::I2CDevice> 
 bool AP_Baro_BMP085::_timer(void)
 {
     if (!_data_ready()) {
-        return true;
+        return false;
     }
 
     if (_state == 0) {
@@ -106,6 +106,7 @@ bool AP_Baro_BMP085::_timer(void)
     } else {
         _cmd_read_pressure();
     }
+    
     return true;
 }
 
@@ -140,7 +141,7 @@ bool AP_Baro_BMP085::_read_pressure()
 {
     uint8_t buf[3];
 
-    if (!_dev->read_registers(0xF6, buf, 3)) {
+    if (!_dev->read_registers(0xF6, buf, sizeof(buf))) {
         _retry_time = AP_HAL::millis() + 1000;
         _dev->set_speed(AP_HAL::Device::SPEED_LOW);
         return false;
@@ -165,7 +166,7 @@ void AP_Baro_BMP085::_read_temp()
     uint8_t buf[2];
     int32_t _temp_sensor;
 
-    if (!_dev->read_registers(0xF6, buf, 2)) {
+    if (!_dev->read_registers(0xF6, buf, sizeof(buf))) {
         _dev->set_speed(AP_HAL::Device::SPEED_LOW);
         return;
     }

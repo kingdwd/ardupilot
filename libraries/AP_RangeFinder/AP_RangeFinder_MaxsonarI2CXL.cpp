@@ -137,8 +137,9 @@ bool AP_RangeFinder_MaxsonarI2CXL::_timer(void)
         }
     }
     return true;
-}
     
+}
+
 
 /*
    update the state of the sensor

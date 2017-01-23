@@ -222,19 +222,19 @@ bool AP_Compass_AK8963::_update()
     uint32_t time_us = AP_HAL::micros();
 
     if (!_bus->block_read(AK8963_HXL, (uint8_t *) &regs, sizeof(regs))) {
-        goto fail;
+        return true;
     }
 
     /* Check for overflow. See AK8963's datasheet, section
      * 6.4.3.6 - Magnetic Sensor Overflow. */
     if ((regs.st2 & 0x08)) {
-        goto fail;
+        return true;
     }
 
     raw_field = Vector3f(regs.val[0], regs.val[1], regs.val[2]);
 
     if (is_zero(raw_field.x) && is_zero(raw_field.y) && is_zero(raw_field.z)) {
-        goto fail;
+        return true;
     }
 
     _make_factory_sensitivity_adjustment(raw_field);
@@ -264,7 +264,6 @@ bool AP_Compass_AK8963::_update()
         _sem->give();
     }
 
-fail:
     return true;
 }
 

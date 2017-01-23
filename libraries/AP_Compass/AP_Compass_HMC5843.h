@@ -40,7 +40,7 @@ private:
     bool _setup_sampling_mode();
 
     bool _timer();
-    
+
     /* Read a single sample */
     bool _read_sample();
 

@@ -177,6 +177,7 @@ bool AP_Compass_LIS3MDL::timer()
 
 check_registers:
     dev->check_next_register();
+    
     return true;
 }
 

@@ -73,6 +73,7 @@ bool NavioLED_I2C::_timer(void)
 			     0x00, 0x00, red_channel_lsb, red_channel_msb};
 
     _dev->transfer(transaction, sizeof(transaction), nullptr, 0);
-    
-    return true;
+
+        return true;
+
 }

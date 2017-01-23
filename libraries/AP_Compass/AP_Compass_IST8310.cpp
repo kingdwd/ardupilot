@@ -128,7 +128,6 @@ void AP_Compass_IST8310::start_conversion()
 
 bool AP_Compass_IST8310::timer()
 {
-
     bool ret = false;
 
     struct PACKED {
@@ -142,14 +141,14 @@ bool AP_Compass_IST8310::timer()
     ret = _dev->read_registers(STAT1_REG, (uint8_t *) &buffer, sizeof(buffer));
     if (!ret) {
         /* We're going to be back on the next iteration either way */
-        return true;
+        return false;
     }
 
     auto status = buffer.status;
 
     if (!(status & 0x01)) {
         /* We're not ready yet */
-       return true;
+       return false;
     }
 
     auto x = static_cast<int16_t>(le16toh(buffer.rx));
@@ -175,7 +174,7 @@ bool AP_Compass_IST8310::timer()
     }
 
     start_conversion();
-
+    
     return true;
 }
 

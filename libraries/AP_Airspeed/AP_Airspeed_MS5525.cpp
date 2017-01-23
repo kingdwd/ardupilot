@@ -245,8 +245,8 @@ bool AP_Airspeed_MS5525::timer()
     }
 
     state = next_state;
-    
-    return true;
+
+    return false;
 }
 
 // return the current differential_pressure in Pascal

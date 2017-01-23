@@ -246,7 +246,7 @@ bool AP_Compass_BMM150::_update()
 
     /* Checking data ready status */
     if (!ret || !(data[3] & 0x1)) {
-        return true;
+        return false;
     }
 
     const uint16_t rhall = le16toh(data[3] >> 2);
@@ -272,8 +272,8 @@ bool AP_Compass_BMM150::_update()
     /* correct raw_field for known errors */
     correct_field(raw_field, _compass_instance);
 
-    if (!_sem->take(HAL_SEMAPHORE_BLOCK_FOREVER)) {
-        return true;
+    if (!_sem->take(0)) {
+        return false;
     }
     _mag_accum += raw_field;
     _accum_count++;

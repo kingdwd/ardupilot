@@ -228,5 +228,5 @@ bool AP_ADC_ADS1115::_update()
     _channel_to_read = (_channel_to_read + 1) % _channels_number;
     _start_conversion(_channel_to_read);
 
-    return true;
+        return true;
 }

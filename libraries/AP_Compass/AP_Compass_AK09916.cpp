@@ -131,7 +131,7 @@ bool AP_Compass_AK09916::timer()
     if (!dev->read_registers(REG_ST1, &st1, 1) || !(st1 & 1)) {
         goto check_registers;
     }
-    
+
     if (!dev->read_registers(REG_HXL, (uint8_t *)&data, sizeof(data))) {
         goto check_registers;
     }

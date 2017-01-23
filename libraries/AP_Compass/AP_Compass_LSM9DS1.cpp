@@ -144,17 +144,17 @@ bool AP_Compass_LSM9DS1::_update(void)
     uint32_t time_us = AP_HAL::micros();
 
     if (!_block_read(LSM9DS1M_STATUS_REG_M, (uint8_t *) &regs, sizeof(regs))) {
-        goto fail;
+        return true;
     }
 
     if (regs.status & 0x80) {
-        goto fail;
+        return false;
     }
 
     raw_field = Vector3f(regs.val[0], regs.val[1], regs.val[2]);
 
     if (is_zero(raw_field.x) && is_zero(raw_field.y) && is_zero(raw_field.z)) {
-        goto fail;
+        return true;
     }
 
     raw_field *= _scaling;
@@ -181,9 +181,8 @@ bool AP_Compass_LSM9DS1::_update(void)
         }
         _sem->give();
     }
-
-fail:
     return true;
+
 }
 
 void AP_Compass_LSM9DS1::read()

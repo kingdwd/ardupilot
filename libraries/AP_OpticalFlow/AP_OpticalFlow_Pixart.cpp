@@ -149,7 +149,7 @@ bool AP_OpticalFlow_Pixart::setup_sensor(void)
     _dev->get_semaphore()->give();
 
     integral.last_frame_us = AP_HAL::micros();
-    
+
     _dev->register_periodic_callback(2000, FUNCTOR_BIND_MEMBER(&AP_OpticalFlow_Pixart::timer, bool));
     return true;
 
@@ -301,6 +301,7 @@ bool AP_OpticalFlow_Pixart::timer(void)
         sum_x = sum_y = 0;
     }
 #endif
+
     return true;
 }
 

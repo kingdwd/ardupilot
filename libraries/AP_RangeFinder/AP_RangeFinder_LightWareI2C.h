@@ -20,7 +20,7 @@ private:
 
     void init();
     bool timer();
-    
+
     // get a reading
     bool get_reading(uint16_t &reading_cm);
     AP_HAL::OwnPtr<AP_HAL::I2CDevice> _dev;

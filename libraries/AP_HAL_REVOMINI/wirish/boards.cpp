@@ -104,14 +104,64 @@ inline static void setupNVIC() {
     NVIC_PriorityGroupConfig( NVIC_PriorityGroup_4);
 }
 
+#define DFU_RTC_SIGNATURE       0xDEADBEEF
+#define BOOT_RTC_REG            (_IO uint32_t *)(RTC_BASE + 0x50)
+
+inline void goDFU();
+
+inline void goDFU(){            // Reboot to BootROM - to DFU mode
+    asm volatile("\
+    ldr     r0, =0x1FFF0000\n\
+    ldr     sp,[r0, #0]    \n\
+    ldr     r0,[r0, #4]    \n\
+    bx      r0             \n\
+    ");
+}
+
+void board_set_rtc_signature(uint32_t sig);
+void board_set_rtc_signature(uint32_t sig)
+{
+        // enable the backup registers.
+        PWR->CR   |= PWR_CR_DBP;
+        RCC->BDCR |= RCC_BDCR_RTCEN;
+
+        RTC_WriteBackupRegister(0, sig);
+
+        // disable the backup registers
+//        RCC->BDCR &= RCC_BDCR_RTCEN;
+        PWR->CR   &= ~PWR_CR_DBP;
+}
 
 
+uint32_t board_get_rtc_signature();
+uint32_t board_get_rtc_signature()
+{
+        // enable the backup registers.
+        PWR->CR   |= PWR_CR_DBP;
+        RCC->BDCR |= RCC_BDCR_RTCEN;
+
+        uint32_t ret = RTC_ReadBackupRegister(0);
+
+        // disable the backup registers
+//        RCC->BDCR &= RCC_BDCR_RTCEN;
+        PWR->CR   &= ~PWR_CR_DBP;
+        
+        return ret;
+}
 
 
 // 1st executing function
 
 void inline init(void) {
-    setupCCM();
+    setupCCM(); // needs because stack in CCM
+    
+
+    if(board_get_rtc_signature() == DFU_RTC_SIGNATURE) {
+        board_set_rtc_signature(0);
+        goDFU();
+    }
+
+
     setupFlash();  // empty
     setupClocks(); // empty
 

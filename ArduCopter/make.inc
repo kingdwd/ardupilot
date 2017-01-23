@@ -65,4 +65,5 @@ LIBRARIES += AP_Proximity
 LIBRARIES += AP_Stats
 LIBRARIES += AP_Gripper
 LIBRARIES += AP_Beacon
+LIBRARIES += AP_Arming
 LIBRARIES += AP_Param_Helper

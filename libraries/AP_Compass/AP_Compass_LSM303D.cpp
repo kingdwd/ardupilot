@@ -373,7 +373,9 @@ bool AP_Compass_LSM303D::_update()
         }
         _sem->give();
     }
+
     return true;
+
 }
 
 // Read Sensor data

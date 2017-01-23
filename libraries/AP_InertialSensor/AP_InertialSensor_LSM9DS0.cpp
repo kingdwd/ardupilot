@@ -701,7 +701,6 @@ bool AP_InertialSensor_LSM9DS0::_poll_data()
     if (!_dev_accel->check_next_register()) {
         _inc_accel_error_count(_accel_instance);
     }
-    
     return true;
 }
 

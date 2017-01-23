@@ -117,6 +117,7 @@ bool AP_IRLock_I2C::read_frames(void)
     
     if (!read_block(irframe)) {
         return true;
+
     }
 
     int16_t corner1_pix_x = irframe.pixel_x - irframe.pixel_size_x/2;
@@ -149,7 +150,7 @@ bool AP_IRLock_I2C::read_frames(void)
     }
 #endif
 
-    return true;
+        return true;
 }
 
 // retrieve latest sensor data - returns true if new data is available

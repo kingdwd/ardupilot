@@ -313,6 +313,8 @@ uint64_t REVOMINIScheduler::_micros64() {
 // *(uint32_t *)0x40002850 = 0xb007b007;
 #define BOOT_RTC_SIGNATURE	0xb007b007
 
+#define DFU_RTC_SIGNATURE	0xDEADBEEF
+
 void REVOMINIScheduler::board_set_rtc_signature(uint32_t sig)
 {
         // enable the backup registers.
@@ -347,35 +349,11 @@ void REVOMINIScheduler::reboot(bool hold_in_bootloader) {
 #if 1
         if((uint32_t)&__isr_vector_start == 0x08000000) { // bare metal build without bootloader
 
-            //usbDeviceDisconnect();  /* вызываем перенумерацию устройств USB. Прерывания должны быть запрещены ! */
-//            NVIC->ICER[OTG_FS_IRQn / 32] = BIT(OTG_FS_IRQn % 32); //nvic_irq_disable(NVIC_OTG_FS_IRQ);
-            
-            usb_close();
-            //USB_OTG_dev.regs.GREGS->GCCFG = 0;
+            board_set_rtc_signature(DFU_RTC_SIGNATURE);
 
-            _delay(50);
-            noInterrupts();
-            
-            usb_disconnect();            
-        
-/*
-            gpio_set_mode(   PIN_MAP[BOARD_USB_DMINUS].gpio_device, PIN_MAP[BOARD_USB_DMINUS].gpio_bit, GPIO_OUTPUT_PP);
-            GPIO_PinAFConfig(PIN_MAP[BOARD_USB_DMINUS].gpio_device->GPIOx, PIN_MAP[BOARD_USB_DMINUS].gpio_bit, 0);
-            gpio_write_bit(  PIN_MAP[BOARD_USB_DMINUS].gpio_device, PIN_MAP[BOARD_USB_DMINUS].gpio_bit, 1);
-*/
-            _delay(250);         /* вызываем таймаут */
-//            usb_open();
-
-            // Reboot to BootROM - to DFU mode
-            asm volatile("\
-    ldr     r0, =0x1FFF0000\n\
-    ldr     sp,[r0, #0]    \n\
-    ldr     r0,[r0, #4]    \n\
-    bx      r0             \n\
-            ");
         } else
 #endif
-        board_set_rtc_signature(BOOT_RTC_SIGNATURE);
+            board_set_rtc_signature(BOOT_RTC_SIGNATURE);
     }
 
     _delay(100);

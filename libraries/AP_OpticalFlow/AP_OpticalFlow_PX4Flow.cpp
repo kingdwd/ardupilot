@@ -124,6 +124,6 @@ bool AP_OpticalFlow_PX4Flow::timer(void)
     }
 
     _update_frontend(state);
-    
-    return true;
+
+        return true;
 }

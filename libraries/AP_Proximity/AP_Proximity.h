@@ -98,11 +98,22 @@ public:
     float distance_max() const;
     float distance_min() const;
 
+    // handle mavlink DISTANCE_SENSOR messages
+    void handle_msg(mavlink_message_t *msg);
+
     // The Proximity_State structure is filled in by the backend driver
     struct Proximity_State {
         uint8_t                 instance;   // the instance number of this proximity sensor
         enum Proximity_Status   status;     // sensor status
     };
+
+    //
+    // support for upwardward facing sensors
+    //
+
+    // get distance upwards in meters. returns true on success
+    bool get_upward_distance(uint8_t instance, float &distance) const;
+    bool get_upward_distance(float &distance) const;
 
     // parameter list
     static const struct AP_Param::GroupInfo var_info[];

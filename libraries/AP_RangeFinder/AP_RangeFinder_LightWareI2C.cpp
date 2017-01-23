@@ -101,6 +101,6 @@ bool AP_RangeFinder_LightWareI2C::timer(void)
         update_status();
     } else {
         set_status(RangeFinder::RangeFinder_NoData);
-    }    
+    }
     return true;
 }

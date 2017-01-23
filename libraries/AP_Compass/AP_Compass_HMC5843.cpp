@@ -274,8 +274,8 @@ bool AP_Compass_HMC5843::_timer()
             _mag_z_accum /= 2;
             _accum_count = 7;
         }
-        _sem->give();
-    
+
+    _sem->give();
     
     return true;
 }
