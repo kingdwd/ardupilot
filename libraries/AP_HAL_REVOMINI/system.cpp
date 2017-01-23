@@ -31,6 +31,10 @@ void panic(const char *errormsg, ...)
     va_end(ap);
     hal.console->printf("\n");
 
+
+    if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
+        board_set_rtc_signature(DFU_RTC_SIGNATURE);
+
 //    for(;;);
 
 

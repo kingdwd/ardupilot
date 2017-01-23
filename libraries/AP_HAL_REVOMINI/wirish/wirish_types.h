@@ -33,6 +33,7 @@
 #include "hal_types.h"
 #include "gpio_hal.h"
 #include "timer.h"
+#include <stdbool.h>
 
 #ifndef _WIRISH_TYPES_H_
 #define _WIRISH_TYPES_H_

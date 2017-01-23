@@ -104,9 +104,8 @@ inline static void setupNVIC() {
     NVIC_PriorityGroupConfig( NVIC_PriorityGroup_4);
 }
 
-#define DFU_RTC_SIGNATURE       0xDEADBEEF
-#define BOOT_RTC_REG            (_IO uint32_t *)(RTC_BASE + 0x50)
-
+//#define BOOT_RTC_REG            (_IO uint32_t *)(RTC_BASE + 0x50)
+/*
 inline void goDFU();
 
 inline void goDFU(){            // Reboot to BootROM - to DFU mode
@@ -117,8 +116,8 @@ inline void goDFU(){            // Reboot to BootROM - to DFU mode
     bx      r0             \n\
     ");
 }
+*/
 
-void board_set_rtc_signature(uint32_t sig);
 void board_set_rtc_signature(uint32_t sig)
 {
         // enable the backup registers.
@@ -133,7 +132,6 @@ void board_set_rtc_signature(uint32_t sig)
 }
 
 
-uint32_t board_get_rtc_signature();
 uint32_t board_get_rtc_signature()
 {
         // enable the backup registers.

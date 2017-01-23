@@ -44,7 +44,6 @@
 #define _BOARDS_H_
 
 #include "hal_types.h"
-
 #include "wirish_types.h"
 
 /* Set of all possible pin names; not all boards have all these (note
@@ -115,6 +114,28 @@ extern void boardInit(void);
  extern "C" {
 #endif
 extern void pre_init(void);
+
+void board_set_rtc_signature(uint32_t sig);
+uint32_t board_get_rtc_signature();
+
+inline void goDFU();
+
+inline void goDFU(){            // Reboot to BootROM - to DFU mode
+    asm volatile("\
+    ldr     r0, =0x1FFF0000\n\
+    ldr     sp,[r0, #0]    \n\
+    ldr     r0,[r0, #4]    \n\
+    bx      r0             \n\
+    ");
+}
+
+extern unsigned __isr_vector_start; // defined by link script
+
+inline bool is_bare_metal();
+inline bool is_bare_metal() {
+    return (uint32_t)&__isr_vector_start == 0x08000000;
+}
+
 #ifdef __cplusplus
  }
 #endif
@@ -129,5 +150,10 @@ extern void pre_init(void);
 
 #define CLOCK_SPEED_MHZ                 CYCLES_PER_MICROSECOND
 #define CLOCK_SPEED_HZ                  (CLOCK_SPEED_MHZ * 1000000UL)
+
+// PX4 writes as
+// *(uint32_t *)0x40002850 = 0xb007b007;
+#define BOOT_RTC_SIGNATURE      0xb007b007
+#define DFU_RTC_SIGNATURE       0xDEADBEEF
 
 #endif

@@ -46,6 +46,8 @@ void SysTick_Handler(void)
 }
 
 
+// blinking on case of Faults
+
 static void trobe(){
     int16_t  slope   = 1;
     uint16_t CC      = 0x0000;
@@ -105,10 +107,15 @@ r0 <- SP
 */
     volatile uint32_t pc=sp[9];
 
+
+
     /* Go to infinite loop when Hard Fault exception occurs */
     LED_YLW = 0;
     LED_RED = 0;
     LED_GRN = 1;
+
+    if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
+            board_set_rtc_signature(DFU_RTC_SIGNATURE);
 
     trobe();
 }
@@ -125,6 +132,9 @@ void MemManage_Handler(void)
     LED_GRN = 0;
     LED_RED = 1;
 
+    if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
+            board_set_rtc_signature(DFU_RTC_SIGNATURE);
+            
     trobe();
 
 }
@@ -142,6 +152,9 @@ void BusFault_Handler(void)
     LED_GRN = 0;
     LED_RED = 0;
 
+    if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
+            board_set_rtc_signature(DFU_RTC_SIGNATURE);
+
     trobe();
 }
 
@@ -157,6 +170,9 @@ void UsageFault_Handler(void)
     LED_YLW = 0;
     LED_GRN = 1;
     LED_RED = 1;
+
+    if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
+        board_set_rtc_signature(DFU_RTC_SIGNATURE);
 
     trobe();
 }

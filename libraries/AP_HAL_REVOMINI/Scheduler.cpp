@@ -311,8 +311,8 @@ uint64_t REVOMINIScheduler::_micros64() {
 
 // PX4 writes as
 // *(uint32_t *)0x40002850 = 0xb007b007;
+/*
 #define BOOT_RTC_SIGNATURE	0xb007b007
-
 #define DFU_RTC_SIGNATURE	0xDEADBEEF
 
 void REVOMINIScheduler::board_set_rtc_signature(uint32_t sig)
@@ -327,7 +327,7 @@ void REVOMINIScheduler::board_set_rtc_signature(uint32_t sig)
 //        RCC->BDCR &= RCC_BDCR_RTCEN;
         PWR->CR   &= ~PWR_CR_DBP;
 }
-
+*/
 
 
 
@@ -347,7 +347,7 @@ void REVOMINIScheduler::reboot(bool hold_in_bootloader) {
 
     if(hold_in_bootloader) {
 #if 1
-        if((uint32_t)&__isr_vector_start == 0x08000000) { // bare metal build without bootloader
+        if(is_bare_metal()) { // bare metal build without bootloader
 
             board_set_rtc_signature(DFU_RTC_SIGNATURE);
 

@@ -29,7 +29,7 @@
 * added translation layer between system PWM_MODES and board's PWM_MODES
 * added initial support for DMA
 * added support for all timers
-* supported reboot to DFU mode
+* supported reboot to DFU mode (via "reboot to PX4 bootloader" in MP)
 * ...
 * a lot of minor enhancements
 

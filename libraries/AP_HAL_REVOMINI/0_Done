@@ -26,7 +26,11 @@
 * micros() call uses 32-bit hardware timer instead of systick_micros()
 * added parameters support for HAL
 * OneShot supported
+* added translation layer between system PWM modes and borad PWM modes
 * added descriptors for all internal hardware
+* added support to reboot to DFU mode (via "reboot to PX4 bootloader" in MP)
+* after any Fault or Pamic() automatically reboots to DFU mode
+
 * ...
 * a lot of minor enhancements
 

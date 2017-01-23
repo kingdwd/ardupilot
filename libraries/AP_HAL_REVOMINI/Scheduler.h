@@ -31,7 +31,6 @@
 
 extern "C" {
     extern unsigned _estack; // defined by link script
-    extern unsigned __isr_vector_start; // defined by link script
     extern uint32_t us_ticks;
 }
 
@@ -217,8 +216,6 @@ protected:
 //} end of multitask
     
 private:
-    static void board_set_rtc_signature(uint32_t sig);
-
     static AP_HAL::Device::PeriodicHandle _register_timer_task(uint32_t period_us, uint64_t proc, REVOMINI::Semaphore *sem, uint8_t mode=0);
 
     static volatile bool _in_timer_proc;
