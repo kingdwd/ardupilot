@@ -106,6 +106,7 @@ enum     BOARD_PWM_MODES REVOMINIRCOutput::_mode = BOARD_PWM_NORMAL;
 bool     REVOMINIRCOutput::_once_mode = false;
 
 uint16_t REVOMINIRCOutput::_period[REVOMINI_MAX_OUTPUT_CHANNELS] IN_CCM;
+uint16_t REVOMINIRCOutput::_freq[REVOMINI_MAX_OUTPUT_CHANNELS] IN_CCM;
 uint16_t REVOMINIRCOutput::_enabled_channels;
 bool     REVOMINIRCOutput::_sbus_enabled;
 bool     REVOMINIRCOutput::_corked;
@@ -161,6 +162,8 @@ uint32_t inline REVOMINIRCOutput::_timer_period(uint16_t speed_hz) {
     return (uint32_t)((PWM_TIMER_KHZ*1000UL) / speed_hz);
 }
 
+
+// not from _freq to take channel dependency
 uint16_t REVOMINIRCOutput::get_freq(uint8_t ch) {
     if(ch >= REVOMINI_OUT_CHANNELS) return 0;
     
@@ -294,10 +297,13 @@ void REVOMINIRCOutput::_timer3_isr_event(TIM_TypeDef* t) {
 void REVOMINIRCOutput::set_freq(uint32_t chmask, uint16_t freq_hz) {          
     uint32_t mask=1;
     
-    if(_once_mode) return; // no frequency in OneShoot modes
     
     for(uint8_t i=0; i< REVOMINI_OUT_CHANNELS; i++) { // кто последний тот и папа
         if(chmask & mask) {
+            _freq[i] = freq_hz;
+            
+            if(_once_mode && freq_hz>50) continue; // no frequency in OneShoot modes
+
             const timer_dev *dev = PIN_MAP[output_channels[i]].timer_device;
             timer_set_reload(dev,  _timer_period(freq_hz)); 
         }

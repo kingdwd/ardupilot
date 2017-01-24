@@ -22,28 +22,22 @@ DSM    GND     rx  en
 */
 
 
-extern const AP_HAL::HAL& hal;
+#define PPM_INPUTS 2
 
-extern pulse_buffer pulses; // PPM data from interrupt
+extern const AP_HAL::HAL& hal;
 
 #define RISING_EDGE 1
 #define FALLING_EDGE 0
+
 #define MINONWIDTH 950
 #define MAXONWIDTH 2075
-// PATCH FOR FAILSAFE AND FRSKY
-//#define MINOFFWIDTH 1000
-//#define MAXOFFWIDTH 22000
 
 #define MINCHECK 900
 #define MAXCHECK 2100
 
-/* private variables to communicate with input capture isr */
-volatile uint16_t REVOMINIRCInput::_pulse_capt[REVOMINI_RC_INPUT_NUM_CHANNELS] IN_CCM /* = {0} */;
-//volatile uint32_t REVOMINIRCInput::_last_pulse[REVOMINI_RC_INPUT_NUM_CHANNELS] IN_CCM /* = {0}*/ ;
-
 static const uint8_t input_channels[]={ 
     4,  // PB14 T12/1 - PPM
-    5,  // PB15 T12/2 - buzz 
+    5,  // PB15 T12/2 - PPM2
     12, // PC6  T8/1  - 6_tx 
     13, // PC7  T8/2  - 6_rx 
     14, // PC8  T8/3  - Soft_scl 
@@ -51,39 +45,28 @@ static const uint8_t input_channels[]={
 };
 
 
-
-volatile uint16_t REVOMINIRCInput::_dsm_val[REVOMINI_RC_INPUT_NUM_CHANNELS] IN_CCM;
-
-volatile uint64_t REVOMINIRCInput::_ppm_last_signal IN_CCM;
-volatile uint64_t REVOMINIRCInput::_dsm_last_signal IN_CCM;
-
-volatile uint8_t  REVOMINIRCInput::_valid_channels = 0;
+PPM_parser REVOMINIRCInput::parsers[PPM_INPUTS]; // individual parsers on each PPM pin
 
 REVOMINIUARTDriver REVOMINIRCInput::uartSDriver(_UART5);
-
+volatile uint16_t REVOMINIRCInput::_dsm_val[REVOMINI_RC_INPUT_NUM_CHANNELS] IN_CCM;
+volatile uint64_t REVOMINIRCInput::_dsm_last_signal IN_CCM;
+volatile uint8_t  REVOMINIRCInput::_dsm_channels = 0;
 struct REVOMINIRCInput::DSM        REVOMINIRCInput::dsm;
-struct REVOMINIRCInput::SBUS       REVOMINIRCInput::sbus;
-struct REVOMINIRCInput::SbusState  REVOMINIRCInput::sbus_state;
-struct REVOMINIRCInput::DSM_State  REVOMINIRCInput::dsm_state;
 
 
-bool REVOMINIRCInput::_got_ppm = false;
-bool REVOMINIRCInput::_got_dsm = false;
+uint8_t           REVOMINIRCInput::_valid_channels = 0;
+uint64_t          REVOMINIRCInput::_last_read = 0;
 
-bool REVOMINIRCInput::_was_ppm = false;
-bool REVOMINIRCInput::_was_dsm = false;
+
 
 uint16_t REVOMINIRCInput::_override[8];
 
-uint64_t REVOMINIRCInput::_last_read;
 bool REVOMINIRCInput::_override_valid;
-
-unsigned int REVOMINIRCInput::ppm_sum_channel=0;
 
 bool REVOMINIRCInput::is_PPM = true;
 
 
-enum BOARD_RC_MODE REVOMINIRCInput::_rc_mode=BOARD_RC_NONE;
+enum BOARD_LAST_INPUT REVOMINIRCInput::_last_read_from=BOARD_INPUT_NONE;
 
 
 /* constrain captured pulse to be between min and max pulsewidth. */
@@ -95,303 +78,25 @@ static inline uint16_t constrain_pulse(uint16_t p) {
 
 
 
-bool REVOMINIRCInput::_process_ppmsum_pulse(uint16_t value)
-{
-    static uint8_t channel_ctr;
-
-    if (value >= 2700) { // Frame synchronization
-	if( channel_ctr >= REVOMINI_RC_INPUT_MIN_CHANNELS ) {
-	    _valid_channels = channel_ctr;
-	}
-	channel_ctr = 0;
-	_got_ppm=true;
-
-        return true;	    
-    } else if(value > 700 && value < 2300) {
-        if (channel_ctr < REVOMINI_RC_INPUT_NUM_CHANNELS) {
-    	    _ppm_last_signal =  systick_uptime();
-            _pulse_capt[channel_ctr] = value;
-
-            channel_ctr++;
-            if (channel_ctr >= REVOMINI_RC_INPUT_NUM_CHANNELS) {
-                _valid_channels = REVOMINI_RC_INPUT_NUM_CHANNELS;
-            }
-        }
-        return true;
-    } else { // try another protocols
-        return false;
-    }
-}
-
-
-void REVOMINIRCInput::rxIntRC(uint16_t value0, uint16_t value1, bool state)
-{
-
-    if(state && _rc_mode!=BOARD_RC_SBUS) { // falling and not SBUS detected
-        if(_rc_mode==BOARD_RC_DSM || !_process_ppmsum_pulse( (value0 + value1) >>1 ) ) { // process PPM only if no DSM detected
-
-            // not PPM - try treat as DSM
-            _process_dsm_pulse(value0>>1, value1>>1);
-        }
-    } else { // rising
-            // try treat as SBUS
-            _process_sbus_pulse(value1>>1, value0>>1); // was 0 so now is length of 0, last is a length of 1
-    }
-}
-
-
-
-
-void REVOMINIRCInput::parse_pulses(){
-//    add_dsm_uart_input();
-
-    static Pulse last_p={0,0};
-    
-    while(!pb_is_empty(&pulses)){
-        Pulse p = pb_remove(&pulses);
-
-// addHist(p.length);
-
-        rxIntRC(last_p.length, p.length, p.state);
-        last_p = p;
-    }
-
-}
-
-
-/*
-  process a SBUS input pulse of the given width
-  
-  pulses are captured on each edges and SBUS parser called on rising edge
-  
-*/
- 
-void REVOMINIRCInput::_process_sbus_pulse(uint16_t width_s0, uint16_t width_s1)
-{
-    // convert to bit widths, allowing for up to 4usec error, assuming 100000 bps - inverted
-    uint16_t bits_s0 = (width_s0+4) / 10;
-    uint16_t bits_s1 = (width_s1+4) / 10;
-
-    uint8_t byte_ofs = sbus_state.bit_ofs/12;
-    uint8_t bit_ofs  = sbus_state.bit_ofs%12;
-    uint16_t nlow;
-
-//hal.console->printf("\np %d\\%d", bits_s0, bits_s1);
-
-
-    if (bits_s1 == 0 || bits_s0 == 0) {
-        // invalid data
-//hal.console->printf("\nreset 0");
-        goto reset;
-    }
-
-//hal.console->printf("\nb %d.%d",  byte_ofs,  bit_ofs);
-
-    if (bits_s1+bit_ofs > 10) { // invalid data as last two bits must be stop bits
-//hal.console->printf("\nreset 1");
-        goto reset;
-    }
-        
-
-    // pull in the high bits
-    sbus_state.bytes[byte_ofs] |= ((1U<<bits_s1)-1) << bit_ofs;
-    sbus_state.bit_ofs += bits_s1;
-    bit_ofs += bits_s1;
-
-    // pull in the low bits
-    nlow = bits_s0;
-    if (nlow + bit_ofs > 12) {
-        nlow = 12 - bit_ofs;
-    }
-    bits_s0 -= nlow;
-    sbus_state.bit_ofs += nlow;
-
-//hal.console->printf(" v=%x",  sbus_state.bytes[byte_ofs]);
-
-    if (sbus_state.bit_ofs == 25*12 && bits_s0 > 12) { // all frame got and was gap
-        // we have a full frame
-        uint8_t bytes[25];
-        uint16_t i;
-
-//hal.console->printf("\ngot frame");
-
-        for (i=0; i<25; i++) {
-            // get inverted data
-            uint16_t v = ~sbus_state.bytes[i];
-    
-            if ((v & 1) != 0) {        // check start bit
-//hal.console->printf("\nreset 3");
-                goto reset;
-            }
-            
-            if ((v & 0xC00) != 0xC00) {// check stop bits
-//hal.console->printf("\nreset 4 %d", i);
-                goto reset;
-            }
-            // check parity
-            uint8_t parity = 0, j;
-            for (j=1; j<=8; j++) {
-                parity ^= (v & (1U<<j))?1:0;
-            }
-            if (parity != (v&0x200)>>9) {
-//hal.console->printf("\nreset 5  %d", i);
-                goto reset;
-            }
-            bytes[i] = ((v>>1) & 0xFF);
-        }
-
-//hal.console->printf("\nframe");
-
-        uint16_t values[REVOMINI_RC_INPUT_NUM_CHANNELS];
-        uint16_t num_values=0;
-        bool sbus_failsafe=false, sbus_frame_drop=false;
-
-
-        if (sbus_decode(bytes, values, &num_values,
-                        &sbus_failsafe, &sbus_frame_drop,
-                        REVOMINI_RC_INPUT_NUM_CHANNELS) &&
-            num_values >= REVOMINI_RC_INPUT_MIN_CHANNELS) 
-        {
-
-//hal.console->printf(" OK");
-
-            for (i=0; i<num_values; i++) {
-                _dsm_val[i] = values[i];
-            }
-            _valid_channels = num_values;
-            
-            _rc_mode = BOARD_RC_SBUS; // lock input mode, SBUS has a parity and other checks so false positive is unreal
-            
-            if (!sbus_failsafe) {
-                _got_dsm = true;
-                _dsm_last_signal = systick_uptime();
-            }
-        }
-        goto reset_ok;
-    } else if (bits_s0 > 12) { // Was inter-frame gap but not full frame 
-//hal.console->printf("\nreset 6");
-        goto reset;
-    }
-    return;
-reset:
-//    hal.console->printf("\nreset");
-
-reset_ok:
-    memset(&sbus_state, 0, sizeof(sbus_state));
-}
-
-
-
-/*
-  process a DSM satellite input pulse of the given width
-  
-  pulses are captured on each edges and DSM parser called on falling edge - eg. beginning of start bit
-  
-*/
-
-void REVOMINIRCInput::_process_dsm_pulse(uint16_t width_s0, uint16_t width_s1)
-{
-    // convert to bit widths, allowing for up to 1usec error, assuming 115200 bps
-    uint16_t bits_s0 = ((width_s0+4)*(uint32_t)115200) / 1000000;
-    uint16_t bits_s1 = ((width_s1+4)*(uint32_t)115200) / 1000000;
-    uint8_t bit_ofs, byte_ofs;
-    uint16_t nbits;
-
-    if (bits_s0 == 0 || bits_s1 == 0) {
-        // invalid data
-        goto reset;
-    }
-
-    byte_ofs = dsm_state.bit_ofs/10;
-    bit_ofs = dsm_state.bit_ofs%10;
-
-    if(byte_ofs > 15) {
-        // invalid data
-        goto reset;
-    }
-
-    // pull in the high bits
-    nbits = bits_s0;
-    if (nbits+bit_ofs > 10) {
-        nbits = 10 - bit_ofs;
-    }
-    dsm_state.bytes[byte_ofs] |= ((1U<<nbits)-1) << bit_ofs;
-    dsm_state.bit_ofs += nbits;
-    bit_ofs += nbits;
-
-
-    if (bits_s0 - nbits > 10) {
-        if (dsm_state.bit_ofs == 16*10) {
-            // we have a full frame
-            uint8_t bytes[16];
-            uint8_t i;
-            for (i=0; i<16; i++) {
-                // get raw data
-                uint16_t v = dsm_state.bytes[i];
-
-                // check start bit
-                if ((v & 1) != 0) {
-                    goto reset;
-                }
-                // check stop bits
-                if ((v & 0x200) != 0x200) {
-                    goto reset;
-                }
-                bytes[i] = ((v>>1) & 0xFF);
-            }
-            uint16_t values[8];
-            uint16_t num_values=0;
-            if (dsm_decode(AP_HAL::micros64(), bytes, values, &num_values, 8) &&
-                num_values >= REVOMINI_RC_INPUT_MIN_CHANNELS) {
-
-                _rc_mode = BOARD_RC_DSM; // lock input mode, DSM has a checksum so false positive is unreal
-
-                for (i=0; i<num_values; i++) {
-                    _dsm_val[i] = values[i];
-                }
-                _valid_channels = num_values;
-                _got_dsm = true;
-                _dsm_last_signal = systick_uptime();
-            }
-        }
-        memset(&dsm_state, 0, sizeof(dsm_state));
-    }
-
-    byte_ofs = dsm_state.bit_ofs/10;
-    bit_ofs  = dsm_state.bit_ofs%10;
-
-    if (bits_s1+bit_ofs > 10) {
-        // invalid data
-        goto reset;
-    }
-
-    // pull in the low bits
-    dsm_state.bit_ofs += bits_s1;
-    return;
-reset:
-    memset(&dsm_state, 0, sizeof(dsm_state));
-}
-
-
-
 
 REVOMINIRCInput::REVOMINIRCInput()
 {   }
 
 void REVOMINIRCInput::init() {
 
-    memset((void *)&_pulse_capt[0], 0, sizeof(_pulse_capt));
-//    memset((void *)&_last_pulse[0], 0, sizeof(_last_pulse));
     memset((void *)&_override[0],   0, sizeof(_override));
     memset((void *)&_dsm_val[0],    0, sizeof(_dsm_val));
 
 
-    _ppm_last_signal=0;
     _dsm_last_signal=0;
 
     REVOMINIGPIO::_pinMode(BOARD_SPEKTRUM_PWR_PIN, OUTPUT);
     REVOMINIGPIO::_pinMode(BOARD_SPEKTRUM_RX_PIN, INPUT_PULLUP);
     REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_ON);
+
+    for(uint8_t i=0; i<PPM_INPUTS;i++) {
+        parsers[i].init(i);
+    }
 
     // initialize DSM UART
     uartSDriver.begin(115200);
@@ -409,14 +114,14 @@ used as:
 
 
 
-/*
-    initial check for pin2-pin3 bridge. If detected switch to PPMSUM  
+
+#ifdef PWM_SUPPORTED // there is no pins 2&3 in RevoMini
+
+
+/*  initial check for pin2-pin3 bridge. If detected switch to PPMSUM  
     default to standard PWM
 */
     
-
-
-#ifdef PWM_SUPPORTED // there is no pins 2&3 in RevoMini
 
     is_PPM = false;
     uint8_t channel3_status = 0;
@@ -482,38 +187,16 @@ used as:
 
 }
 
-uint8_t REVOMINIRCInput::valid_channels()
-{
-#ifdef PWM_SUPPORTED
-    if(!is_PPM)
-	return 1;
-    else
-#endif
-	return _valid_channels;
-
-}
+// we have 3 individual sources of data - internal DSM from UART5 and 2 PPM parsers
 
 bool REVOMINIRCInput::new_input()
 {
-    parse_pulses();
-
-    return _override_valid || _new_ppm_input() || _new_dsm_input();
+    return _override_valid || 
+           _dsm_last_signal >_last_read ||
+           parsers[0].last_signal >_last_read ||
+           parsers[1].last_signal >_last_read;
 }
 
-bool REVOMINIRCInput::_new_ppm_input()
-{
-    bool valid = _got_ppm;
-    if(valid) _was_ppm=true;
-    return valid;
-}
-
-
-bool REVOMINIRCInput::_new_dsm_input()
-{
-    bool valid = _got_dsm;
-    if(valid) _was_dsm=true;
-    return valid;
-}
 
 uint8_t REVOMINIRCInput::num_channels()
 {
@@ -527,6 +210,7 @@ uint8_t REVOMINIRCInput::num_channels()
     interrupts(); 
     return n;
 #else
+
     return _valid_channels;
 #endif
 }
@@ -539,40 +223,75 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
 {
     uint16_t data=0;
     uint32_t pulse=0;
-    
-    parse_pulses();
-    
+
+
     if(ch>=REVOMINI_RC_INPUT_NUM_CHANNELS) return 0;
 
-    if(_was_ppm){
 
-        noInterrupts();
-    
-        _last_read = _ppm_last_signal;
-        _got_ppm=false;
-    
-        _override_valid = false;
-#ifdef PWM_SUPPORTED
-        if (!is_PPM) {
-            data = pwmRead(ch, &pulse);
-        }  else 
-#endif    
-        {
-            data = _pulse_capt[ch];
-            pulse = _ppm_last_signal;
-        }
-        interrupts();
-    }
-    
-    if(_was_dsm){
+    if(_dsm_last_signal >_last_read){ 
         noInterrupts();
         _last_read = _dsm_last_signal;
         data = _dsm_val[ch];
         pulse = _dsm_last_signal;
-        _got_dsm=false;
+        _valid_channels = _dsm_channels;
         interrupts();
+        _last_read_from = BOARD_INPUT_DSM;
+    } else if( parsers[0].last_signal >_last_read) {
+        noInterrupts();
+        _last_read = parsers[0].last_signal;
+        data =       parsers[0].val[ch];
+        pulse =      _last_read;
+        _valid_channels = parsers[0].valid_channels;
+        interrupts();
+        _last_read_from = BOARD_INPUT_P0;
+    } else if( parsers[1].last_signal >_last_read) {
+        noInterrupts();
+        _last_read = parsers[1].last_signal;
+        data =       parsers[1].val[ch];
+        pulse =      _last_read;
+        _valid_channels = parsers[1].valid_channels;
+        interrupts();
+        _last_read_from = BOARD_INPUT_P1;
+    } else {
+        switch(_last_read_from){
+        case BOARD_INPUT_DSM:
+            noInterrupts();
+            _last_read = _dsm_last_signal;
+            data = _dsm_val[ch];
+            _valid_channels = _dsm_channels;
+            interrupts();
+            pulse = _last_read;
+            break;
+        case BOARD_INPUT_P0:
+            noInterrupts();
+            _last_read = parsers[0].last_signal;
+            data =       parsers[0].val[ch];
+            _valid_channels = parsers[0].valid_channels;
+            interrupts();
+            pulse =      _last_read;
+            break;
+        case BOARD_INPUT_P1:
+            noInterrupts();
+            _last_read = parsers[1].last_signal;
+            data =       parsers[1].val[ch];
+            _valid_channels = parsers[1].valid_channels;
+            interrupts();
+            pulse =      _last_read;
+            break;
+        default:  
+#ifdef PWM_SUPPORTED
+            if (!is_PPM) {
+                data = pwmRead(ch, &pulse);
+                break;
+            } 
+#endif    
+            data = 0;
+            break;
+        }
+    
     }
     
+
     /* Check for override */
     uint16_t over = _override[ch];
     if(over) return over;
@@ -585,56 +304,12 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
 
 uint8_t REVOMINIRCInput::read(uint16_t* periods, uint8_t len)
 {
-    uint32_t pulse=0;
-    
-    parse_pulses();
-    
-    if(len > REVOMINI_RC_INPUT_NUM_CHANNELS) len = REVOMINI_RC_INPUT_NUM_CHANNELS; // limit count
-    
-    if(_was_ppm){
 
-        noInterrupts(); // to not interfere with ISR for full data
-
-#ifdef PWM_SUPPORTED
-        if (!is_PPM) { // PWM
-            uint16_t pulses[REVOMINI_RC_INPUT_NUM_CHANNELS];
-            for (uint8_t i = 0; i < len; i++)
-                periods[i] = pwmRead(i, &pulses[i]);
-                
-            pulse=pulses[2];
-        } else 
-#endif
-        {        // PPM
-            for (uint8_t i = 0; i < len; i++) 
-                periods[i] = _pulse_capt[i];
-        }
-        pulse = _ppm_last_signal;
-        _got_ppm =false;
-        interrupts();
+    for (uint8_t i = 0; i < len; i++){
+        periods[i] = read(i);
     }
 
-    if(_was_dsm){
-        noInterrupts();
-        _last_read = _dsm_last_signal;
-        for (uint8_t i = 0; i < len; i++) 
-            periods[i] = _dsm_val[i];
-        pulse = _dsm_last_signal;
-        _got_dsm = false;
-        interrupts();
-    }
-    
-// throttle channel lost for more than LOST_TIME (ms) - failsafe
-
-    if ((systick_uptime() - pulse  > LOST_TIME) )
-        periods[2] = 900;
-
-
-    for (uint8_t i = 0; i < len; i++) {
-	if (_override[i] != 0)
-	    periods[i] = _override[i];
-    }
-
-    return len;
+    return _valid_channels;
 }
 
 
@@ -669,15 +344,42 @@ void REVOMINIRCInput::clear_overrides()
 }
 
 
+bool REVOMINIRCInput::rc_bind(int dsmMode){
+    uartSDriver.end();
+    
+    REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_OFF); /*power down DSM satellite*/
+
+    REVOMINIScheduler::_delay(500);
+
+    REVOMINIGPIO::_pinMode(BOARD_SPEKTRUM_RX_PIN, OUTPUT);           /*Set UART RX pin to active output mode*/
+
+    REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_ON);     /* power up DSM satellite*/
+
+    REVOMINIScheduler::_delay(72);
+
+    for (int i = 0; i < dsmMode; i++) {                         /*Pulse RX pin a number of times*/
+	REVOMINIScheduler::_delay_microseconds(120);
+	REVOMINIGPIO::_write(BOARD_SPEKTRUM_RX_PIN, 0);
+	REVOMINIScheduler::_delay_microseconds(120);
+	REVOMINIGPIO::_write(BOARD_SPEKTRUM_RX_PIN, 1);
+    }
+
+    REVOMINIScheduler::_delay(50);
+
+    uartSDriver.begin(115200);                                  	/*Restore USART RX pin to RS232 receive mode*/
+
+    return true;
+}
+
+
 /*
-  add some bytes of input in DSM serial stream format, coping with partial packets
+  add some bytes of input in DSM serial stream format, coping with partial packets - UART input callback
  */
 void REVOMINIRCInput::add_dsm_uart_input() {
     
     while(uartSDriver.available()){
         
-        // at least 1 bute we have
-        
+        // at least 1 byte we have
         const uint8_t dsm_frame_size = sizeof(dsm.frame);
 
         uint32_t now = AP_HAL::millis();    
@@ -712,11 +414,10 @@ void REVOMINIRCInput::add_dsm_uart_input() {
                   as they are spread across multiple frames. We just
                   use the max num_values we get
                  */
-                if (num_values > _valid_channels) {
-                    _valid_channels = num_values;
+                if (num_values > _dsm_channels) {
+                    _dsm_channels = num_values;
                 }
-                _dsm_last_signal =  REVOMINIScheduler::_millis64();
-                _got_dsm = true;
+                _dsm_last_signal = systick_uptime();
 #if 0
                 HAP_PRINTF("Decoded DSM %u channels %u %u %u %u %u %u %u %u\n",
                            (unsigned)num_values,
@@ -727,33 +428,5 @@ void REVOMINIRCInput::add_dsm_uart_input() {
     }
 }
 
-
-
-bool REVOMINIRCInput::rc_bind(int dsmMode){
-    uartSDriver.end();
-    
-    REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_OFF); /*power down DSM satellite*/
-
-    REVOMINIScheduler::_delay(500);
-
-    REVOMINIGPIO::_pinMode(BOARD_SPEKTRUM_RX_PIN, OUTPUT);           /*Set UART RX pin to active output mode*/
-
-    REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_ON);     /* power up DSM satellite*/
-
-    REVOMINIScheduler::_delay(72);
-
-    for (int i = 0; i < dsmMode; i++) {                         /*Pulse RX pin a number of times*/
-	REVOMINIScheduler::_delay_microseconds(120);
-	REVOMINIGPIO::_write(BOARD_SPEKTRUM_RX_PIN, 0);
-	REVOMINIScheduler::_delay_microseconds(120);
-	REVOMINIGPIO::_write(BOARD_SPEKTRUM_RX_PIN, 1);
-    }
-
-    REVOMINIScheduler::_delay(50);
-
-    uartSDriver.begin(115200);                                  	/*Restore USART RX pin to RS232 receive mode*/
-
-    return true;
-}
 
 

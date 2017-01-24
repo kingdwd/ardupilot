@@ -24,7 +24,7 @@
 #define BOARD_RFM22B_CS_PIN     103 // PA15 CS_RFM22B
 #define BOARD_RFM22B_INT_PIN    26  // PD2
 
-#define BOARD_BUZZER_PIN        5 // PB15, PWM2
+//#define BOARD_BUZZER_PIN        5 // PB15, PWM2 - used as PPM2
 
 
 #define BOARD_NR_USARTS         5

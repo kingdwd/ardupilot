@@ -126,7 +126,7 @@ void REVOMINIStorage::write_byte(uint16_t loc, uint8_t value)
     if (loc & 1)
 	data = (data & 0x00ff) | (value << 8); // Odd, upper byte
     else
-	data = (data & 0xff00) | value; // Even, lower byte
+	data = (data & 0xff00) | value;        // Even, lower byte
     eeprom.write(loc >> 1, data);
 }
 

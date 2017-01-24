@@ -27,7 +27,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {&gpiob,   NULL, NULL, 12, 0, ADCx}, /* D2/PB12  2 in0 on REVO */
     {&gpiob,   NULL, NULL, 13, 0, ADCx}, /* D3/PB13  3 in1 on REVO */
     {&gpiob,&timer12,NULL, 14, 1, ADCx}, /* D4/PB14  4 CH1_IN - PPMSUM */
-    {&gpiob,&timer12,NULL, 15, 2, ADCx}, /* D5/PB15  5 CH2_IN / buzzer */
+    {&gpiob,&timer12,NULL, 15, 2, ADCx}, /* D5/PB15  5 CH2_IN - PPMSUM2 */
     {&gpioc,   NULL,&_adc1, 0, 0,   10}, /* D6/PC0   6 SBUS invertor output */
     {&gpioc,   NULL,&_adc1, 1, 0,   11}, /* D7/PC1   7 VOLT */
     {&gpioc,   NULL,&_adc1, 2, 0,   12}, /* D8/PC2   8 AMP/SONAR */

@@ -24,8 +24,7 @@ namespace REVOMINI {
     class REVOMINIUtil;
     class REVOI2CDevice;
     class I2CDeviceManager;
-    
-//    class UART_softDriver;
+    class PPM_parser;
     class SerialDriver;
 }
 

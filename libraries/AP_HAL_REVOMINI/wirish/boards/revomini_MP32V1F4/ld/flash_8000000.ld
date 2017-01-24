@@ -161,13 +161,31 @@ SECTIONS
     . = ALIGN(4);
   } >RAM
 
-  .ccm (NOLOAD) : {
+
+  /* used by the startup to initialize data */
+  _siccm = .;
+
+/* initialized CCM sections
+  .ccm (): {
       . = ALIGN(4);
       _sccm = .;
       *(.ccm)
+      *(.ccm*)
       . = ALIGN(4);      
       _eccm = .;
-  }>CCM
+  }>CCM AT> FLASH
+*/
+
+
+/* empty CCM sections */
+  .ccm (): {
+      . = ALIGN(4);
+      _sccm = .;
+      *(.ccm)
+      *(.ccm*)
+      . = ALIGN(4);      
+      _eccm = .;
+  }>CCM 
 
 
   /* MEMORY_bank1 section, code must be located here explicitly            */
