@@ -1,3 +1,4 @@
+
 int _kill(int pid, int sig);
 
 void _exit(int status);
@@ -22,7 +23,7 @@ void clock_gettime(uint32_t a1, void *a2);
 
 #pragma pack(push, 1)
 union udid {
-        uint32_t        serial[3];
+        uint32_t serial[3];
         uint8_t  data[12];
 };
 #pragma pack(pop)

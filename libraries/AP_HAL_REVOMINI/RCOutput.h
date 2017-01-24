@@ -77,6 +77,7 @@ private:
     static void set_pwm(uint8_t ch, uint16_t pwm);
     static uint32_t _timer_period(uint16_t speed_hz);
     static uint16_t _period[REVOMINI_MAX_OUTPUT_CHANNELS];
+    static uint16_t _freq[REVOMINI_MAX_OUTPUT_CHANNELS];
     static uint16_t _enabled_channels;
     static bool _sbus_enabled;
     static bool _corked;

@@ -49,16 +49,44 @@ typedef struct PULSE {
     bool state;
 } Pulse;
 
+#define PULSES_QUEUE_SIZE (25*12*2*2) // 2 full frames by 25 bytes each
 
+#include "ring_buffer_pulse.h"
+
+
+#ifdef PWM_SUPPORTED
 struct PWM_State  {
-        uint8_t state;
-        uint16_t lower; //rise;
-        uint16_t upper; //fall;
-        uint16_t last_val;
-        uint16_t capture;
-        uint16_t error;
-        uint32_t last_pulse;
+    uint8_t state;
+    uint16_t lower; //rise;
+    uint16_t upper; //fall;
+    uint16_t last_val;
+    uint16_t capture;
+    uint16_t error;
+    uint32_t last_pulse;
 };
+
+extern struct PWM_State Inputs[];
+extern bool _is_ppmsum;
+
+
+static inline uint16_t pwmRead(uint8_t channel, uint32_t *time){
+    if(time) *time=Inputs[channel].last_pulse;
+    return Inputs[channel].capture;
+}
+
+
+#endif
+
+struct PPM_State  {
+    uint8_t state;          // 1 or 0
+    uint16_t last_val;      // length 
+    uint32_t last_pulse;    // time of edge
+    volatile pulse_buffer pulses;   // ring buffer
+    Pulse pulse_mem[PULSES_QUEUE_SIZE]; // memory
+};
+
+extern struct PPM_State PPM_Inputs[] IN_CCM;
+
 
 struct TIM_Channel {
         TIM_TypeDef * tim;
@@ -80,7 +108,6 @@ struct TIM_Channel {
         uint8_t channel_n; // for work with Timer driver
 }; 
  
-extern struct PWM_State Inputs[];
 /**
  * Set the PWM duty on the given pin.
  *
@@ -93,18 +120,7 @@ extern struct PWM_State Inputs[];
 
 void pwmInit(bool ppmsum);
 
-
-extern bool _is_ppmsum;
-
-static inline uint16_t pwmRead(uint8_t channel, uint32_t *time){
-    if(time) *time=Inputs[channel].last_pulse;
-    return Inputs[channel].capture;
-}
-
-
-void TIM1_CC_IRQHandler(void);
-void TIM8_CC_IRQHandler(void);
-void TIM8_BRK_TIM12_IRQHandler(void);
+bool getPPM_Pulse(Pulse *p, uint8_t ch);
 
 #ifdef __cplusplus
   }

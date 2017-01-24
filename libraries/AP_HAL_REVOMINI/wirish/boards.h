@@ -118,9 +118,9 @@ extern void pre_init(void);
 void board_set_rtc_signature(uint32_t sig);
 uint32_t board_get_rtc_signature();
 
-inline void goDFU();
+static inline void goDFU();
 
-inline void goDFU(){            // Reboot to BootROM - to DFU mode
+static inline void goDFU(){            // Reboot to BootROM - to DFU mode
     asm volatile("\
     ldr     r0, =0x1FFF0000\n\
     ldr     sp,[r0, #0]    \n\
@@ -131,8 +131,8 @@ inline void goDFU(){            // Reboot to BootROM - to DFU mode
 
 extern unsigned __isr_vector_start; // defined by link script
 
-inline bool is_bare_metal();
-inline bool is_bare_metal() {
+static inline bool is_bare_metal();
+static inline bool is_bare_metal() {
     return (uint32_t)&__isr_vector_start == 0x08000000;
 }
 

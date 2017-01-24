@@ -610,12 +610,13 @@ int usb_close(void)
 {	
 	usb_periphcfg(DISABLE);	
 	
-	if (usb_ready == 1)
-	{
+	if (usb_ready == 1) {
 		DCD_DevDisconnect(&USB_OTG_dev);
 		USBD_DeInit(&USB_OTG_dev);
 		USB_OTG_StopDevice(&USB_OTG_dev);
 		usb_ready = 0;
+//		usb_cdcacm_disable(BOARD_USB_DISC_DEV, BOARD_USB_DISC_BIT);
+//              usb_cdcacm_set_hooks(USB_CDCACM_HOOK_RX | USB_CDCACM_HOOK_IFACE_SETUP, 0);            
 	}
 	
 	if (usb_attr->use_present_pin)
@@ -668,6 +669,24 @@ int usb_ioctl(int request, void *ctl)
 	return 1;
 }
 
+
+/*
+
+// * User hooks
+
+
+static void (*rx_hook)(unsigned, void*) = 0;
+static void (*iface_setup_hook)(unsigned, void*) = 0;
+
+void usb_cdcacm_set_hooks(unsigned hook_flags, void (*hook)(unsigned, void*)) {
+    if (hook_flags & USB_CDCACM_HOOK_RX) {
+        rx_hook = hook;
+    }
+    if (hook_flags & USB_CDCACM_HOOK_IFACE_SETUP) {
+        iface_setup_hook = hook;
+    }
+}
+*/
 
 // following functions can't be inline!
 void USB_OTG_BSP_uDelay (const uint32_t usec) {   

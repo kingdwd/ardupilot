@@ -7,7 +7,7 @@
 #include <AP_HAL/AP_HAL.h>
 
 #ifndef IN_CCM
-#define IN_CCM  __attribute__((section("ccm")))
+#define IN_CCM  __attribute__((section(".ccm")))
 #endif
 
 //#define  USE_SOFTSERIAL

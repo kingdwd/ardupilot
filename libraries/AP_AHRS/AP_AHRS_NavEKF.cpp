@@ -90,10 +90,16 @@ void AP_AHRS_NavEKF::update(void)
     update_SITL();
 #endif
 
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+#if HAL_MODULE_SUPPORTED
     // call AHRS_update hook if any
     AP_Module::call_hook_AHRS_update(*this);
 #endif
+
+    // push gyros if optical flow present
+    if (hal.opticalflow) {
+        const Vector3f &exported_gyro_bias = get_gyro_drift();
+        hal.opticalflow->push_gyro_bias(exported_gyro_bias.x, exported_gyro_bias.y);
+    }
 }
 
 void AP_AHRS_NavEKF::update_DCM(void)

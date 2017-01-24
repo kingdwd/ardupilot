@@ -40,7 +40,9 @@
 # define HAL_GPIO_LED_ON                BOARD_LED_ON
 # define HAL_GPIO_LED_OFF               BOARD_LED_OFF
 
+#ifdef BOARD_BUZZER_PIN
 #define BUZZER_PIN                      BOARD_BUZZER_PIN
+#endif
 
 # define PUSHBUTTON_PIN                 BOARD_PUSHBUTTON_PIN
 # define USB_MUX_PIN                    BOARD_USB_MUX_PIN

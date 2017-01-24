@@ -93,7 +93,16 @@ inline static void setupCCM(){
     RCC->AHB1ENR |= RCC_AHB1ENR_CCMDATARAMEN;
     asm volatile("dsb \n");
 
-    volatile unsigned *dest = &_sccm;
+    volatile unsigned *src = &_siccm; // CCM initializers in flash
+    volatile unsigned *dest = &_sccm; // start of CCM
+
+#if 0
+
+    while (dest < &_eccm) {
+        *dest = *src;
+    }
+//        for (src = &_data_loadaddr, dest = &_data;                 dest < &_edata;                 src++, dest++) {
+#endif
     while (dest < &_eccm) {
         *dest++ = 0;
     }
