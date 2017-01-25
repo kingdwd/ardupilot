@@ -30,6 +30,11 @@
 * added initial support for DMA
 * added support for all timers
 * supported reboot to DFU mode (via "reboot to PX4 bootloader" in MP)
+* after any Fault or Panic() automatically reboots to DFU mode
+* diversity on RC_Input
+* reverted idiotic mainline change in Periodic interface
+* all used drivers altered to use "reschedule me" HAL feature
+* added usage for Compass' DataReady pin
 * ...
 * a lot of minor enhancements
 
