@@ -31,7 +31,9 @@ static const exti_channel exti_channels[] = {
 
 #define NUM_IRQ (sizeof(exti_channels)/sizeof(exti_channel))
 
-static Handler handlers[NUM_IRQ] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static Handler handlers[NUM_IRQ] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} ;
+
+// TODO: сделать вызов INIT и перенести все хандлеры в CCM
 
 
 static inline EXTITrigger_TypeDef get_exti_mode(exti_trigger_mode mode) {

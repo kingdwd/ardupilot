@@ -33,7 +33,7 @@ static ring_buffer _txfifo;
 static ring_buffer *rxfifo = &_rxfifo;                /* Rx FIFO */
 static ring_buffer *txfifo = &_txfifo;                /* Rx FIFO */
 
-static uint8_t rx_buf[USB_RXFIFO_SIZE];
+static uint8_t rx_buf[USB_RXFIFO_SIZE]; // USB can work via DMA so no CCM!
 static uint8_t tx_buf[USB_TXFIFO_SIZE];
 
 static U8 preempt_prio, sub_prio;

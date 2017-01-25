@@ -478,14 +478,21 @@ store:
 
 bool REVOMINIScheduler::adjust_timer_task(AP_HAL::Device::PeriodicHandle h, uint32_t period_us)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
     revo_timer *p = (revo_timer *)h;
+#pragma GCC diagnostic pop
     p->period = period_us;
     
     return true;
 }
 bool REVOMINIScheduler::unregister_timer_task(AP_HAL::Device::PeriodicHandle h)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-align"
     revo_timer *p = (revo_timer *)h;
+#pragma GCC diagnostic pop
+
     noInterrupts(); // 64-bits should be 
     p->proc=0L;
     interrupts();

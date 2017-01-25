@@ -60,6 +60,7 @@ extern const AP_HAL::HAL& hal;
 #define HMC5843_OSR_15HZ   (0x04 << 2)
 #define HMC5843_OSR_30HZ   (0x05 << 2)
 #define HMC5843_OSR_75HZ   (0x06 << 2)
+
 // Sensor operation modes
 #define HMC5843_OPMODE_NORMAL 0x00
 #define HMC5843_OPMODE_POSITIVE_BIAS 0x01
@@ -92,6 +93,8 @@ extern const AP_HAL::HAL& hal;
 #define HMC5843_REG_DATA_OUTPUT_X_MSB 0x03
 
 #define HMC5843_REG_ID_A 0x0A
+
+#define HMC5843_REG_STATUS 0x09
 
 
 AP_Compass_HMC5843::AP_Compass_HMC5843(Compass &compass, AP_HMC5843_BusDriver *bus,
@@ -186,12 +189,20 @@ bool AP_Compass_HMC5843::init()
         goto errout;
     }
 
+    _gain_scale = (1.0f / 1090) * 1000;
+
     _initialised = true;
 
     // lower retries for run
     _bus->set_retries(3);
     
     bus_sem->give();
+
+#if defined(HMC5883_DRDY_PIN)
+    _drdy_pin = hal.gpio->channel(HMC5883_DRDY_PIN);
+    _drdy_pin->mode(HAL_GPIO_INPUT);
+#endif
+
 
     // perform an initial read
     read();
@@ -227,19 +238,24 @@ errout:
  */
 bool AP_Compass_HMC5843::_timer()
 {
+    uint32_t tnow = AP_HAL::micros();    
+
+#if defined(HMC5883_DRDY_PIN)
+    if(_drdy_pin->read() == 0) return false; // data not ready
+#endif
+
     if (!_sem->take_nonblocking()) return false; // reschedule at next tick
 
     bool result = _read_sample();
 
-    // always ask for a new sample
-    _take_sample();
-    
+    if(!_setup_sampling_mode() )
+        _take_sample();
+        
     if (!result) {
         _sem->give();
         return true;
     }
 
-    uint32_t tnow = AP_HAL::micros();    
 
     // the _mag_N values are in the range -2048 to 2047, so we can
     // accumulate up to 15 of them in an int16_t. Let's make it 14
@@ -319,15 +335,11 @@ void AP_Compass_HMC5843::read()
 
 bool AP_Compass_HMC5843::_setup_sampling_mode()
 {
-    _gain_scale = (1.0f / 1090) * 1000;
-    if (!_bus->register_write(HMC5843_REG_CONFIG_A,
-                              HMC5843_CONF_TEMP_ENABLE |
-                              HMC5843_OSR_75HZ |
-                              HMC5843_SAMPLE_AVERAGING_1) ||
-        !_bus->register_write(HMC5843_REG_CONFIG_B,
-                              HMC5883L_GAIN_1_30_GA) ||
-        !_bus->register_write(HMC5843_REG_MODE,
-                              HMC5843_MODE_SINGLE)) {
+    if (!_bus->register_write(HMC5843_REG_CONFIG_A, HMC5843_CONF_TEMP_ENABLE |
+                                                    HMC5843_OSR_75HZ |
+                                                    HMC5843_SAMPLE_AVERAGING_1) ||
+        !_bus->register_write(HMC5843_REG_CONFIG_B, HMC5883L_GAIN_1_30_GA) ||
+        !_bus->register_write(HMC5843_REG_MODE,     HMC5843_MODE_SINGLE)) {
         return false;
     }
     return true;
@@ -403,7 +415,7 @@ bool AP_Compass_HMC5843::_calibrate()
     /*
      * the expected values are based on observation of real sensors
      */
-	float expected[3] = { 1.16*600, 1.08*600, 1.16*600 };
+    float expected[3] = { 1.16*600, 1.08*600, 1.16*600 };
 
     uint8_t base_config = HMC5843_OSR_15HZ;
     uint8_t num_samples = 0;

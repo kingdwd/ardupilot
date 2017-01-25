@@ -5,8 +5,8 @@
  * Devices
  */
 
-static ring_buffer usart1_txrb;
-static ring_buffer usart1_rxrb;
+static ring_buffer usart1_txrb IN_CCM;
+static ring_buffer usart1_rxrb IN_CCM;
 static usart_state u1state IN_CCM;
 
 static const usart_dev usart1 =
@@ -25,8 +25,8 @@ static const usart_dev usart1 =
 /** USART1 device */
 const usart_dev * const _USART1 = &usart1;
 
-static ring_buffer usart2_txrb;
-static ring_buffer usart2_rxrb;
+static ring_buffer usart2_txrb IN_CCM;
+static ring_buffer usart2_rxrb IN_CCM;
 static usart_state u2state IN_CCM;
 
 static const usart_dev usart2 =
@@ -45,8 +45,8 @@ static const usart_dev usart2 =
 /** USART2 device */
 const usart_dev * const _USART2 = &usart2;
 
-static ring_buffer usart3_txrb;
-static ring_buffer usart3_rxrb;
+static ring_buffer usart3_txrb IN_CCM;
+static ring_buffer usart3_rxrb IN_CCM;
 static usart_state u3state IN_CCM;
 
 static const usart_dev usart3 =
@@ -65,8 +65,8 @@ static const usart_dev usart3 =
 /** USART3 device */
 const usart_dev * const _USART3 = &usart3;
 
-static ring_buffer uart4_txrb;
-static ring_buffer uart4_rxrb;
+static ring_buffer uart4_txrb IN_CCM;
+static ring_buffer uart4_rxrb IN_CCM;
 static usart_state u4state IN_CCM;
 
 static const usart_dev uart4 = {
@@ -84,8 +84,8 @@ static const usart_dev uart4 = {
 /** UART4 device */
 const usart_dev * const _UART4 = &uart4;
 
-static ring_buffer uart5_txrb;
-static ring_buffer uart5_rxrb;
+static ring_buffer uart5_txrb IN_CCM;
+static ring_buffer uart5_rxrb IN_CCM;
 static usart_state u5state IN_CCM;
 
 static const usart_dev uart5 = {
@@ -103,8 +103,8 @@ static const usart_dev uart5 = {
 /** UART5 device */
 const usart_dev * const _UART5 = &uart5;
 
-static ring_buffer usart6_txrb;
-static ring_buffer usart6_rxrb;
+static ring_buffer usart6_txrb IN_CCM;
+static ring_buffer usart6_rxrb IN_CCM;
 static usart_state u6state IN_CCM;
 
 static const usart_dev usart6 =

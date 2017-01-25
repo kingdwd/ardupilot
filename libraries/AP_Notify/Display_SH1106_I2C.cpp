@@ -68,7 +68,7 @@ bool Display_SH1106_I2C::hw_init()
 
     if (success) {
         _need_hw_update = true;
-        _dev->register_periodic_callback(20000, FUNCTOR_BIND_MEMBER(&Display_SH1106_I2C::_timer, void));
+        _dev->register_periodic_callback(20000, FUNCTOR_BIND_MEMBER(&Display_SH1106_I2C::_timer, bool));
     }
 
     return success;
@@ -79,10 +79,10 @@ void Display_SH1106_I2C::hw_update()
     _need_hw_update = true;
 }
 
-void Display_SH1106_I2C::_timer()
+bool Display_SH1106_I2C::_timer()
 {
     if (!_need_hw_update) {
-        return;
+        return true;
     }
     _need_hw_update = false;
 
@@ -115,6 +115,8 @@ void Display_SH1106_I2C::_timer()
             _dev->transfer((uint8_t *)&display_buffer, SH1106_COLUMNS/2 + 1, nullptr, 0);
         }
     }
+
+    return true;
 }
 
 void Display_SH1106_I2C::set_pixel(uint16_t x, uint16_t y)

@@ -32,7 +32,7 @@
 //#define I2C_DEBUG
 
 // use soft I2C driver instead hardware
-#define SOFT_I2C
+//#define SOFT_I2C
 
 // bus 2 (soft) pins
 #define SOFT_SCL BOARD_SOFT_SCL

@@ -50,7 +50,7 @@
 #define NR_BAS_HANDLERS                 1
 
 
-TimerHandler tim1_handlers[NR_ADV_HANDLERS]= {0};
+TimerHandler tim1_handlers[NR_ADV_HANDLERS] IN_CCM;
 const timer_dev timer1 = {
     .regs         = TIM1,
     .clk	  = RCC_APB2Periph_TIM1,
@@ -63,7 +63,7 @@ const timer_dev timer1 = {
 };
 /** Timer 1 device (advanced) */
 
-TimerHandler tim2_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim2_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer2 = {
     .regs         = TIM2,
     .clk    	  = RCC_APB1Periph_TIM2,
@@ -76,7 +76,7 @@ const timer_dev timer2 = {
 };
 /** Timer 2 device (general-purpose) */
 
-TimerHandler tim3_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim3_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer3 = {
     .regs         = TIM3,
     .clk	  = RCC_APB1Periph_TIM3,
@@ -89,7 +89,7 @@ const timer_dev timer3 = {
 };
 /** Timer 3 device (general-purpose) */
 
-TimerHandler tim4_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim4_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer4 = {
     .regs         = TIM4,
     .clk       	  = RCC_APB1Periph_TIM4,
@@ -102,7 +102,7 @@ const timer_dev timer4 = {
 };
 /** Timer 4 device (general-purpose) */
 
-TimerHandler tim5_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim5_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer5 = {
     .regs         = TIM5,
     .clk          = RCC_APB1Periph_TIM5,
@@ -115,7 +115,7 @@ const timer_dev timer5 = {
 };
 /** Timer 5 device (general-purpose) */
 
-TimerHandler tim6_handlers[NR_BAS_HANDLERS]={0};
+TimerHandler tim6_handlers[NR_BAS_HANDLERS] IN_CCM;
 const timer_dev timer6 = {
     .regs         = TIM6,
     .clk          = RCC_APB1Periph_TIM6,
@@ -128,7 +128,7 @@ const timer_dev timer6 = {
 };
 /** Timer 6 device (basic) */
 
-TimerHandler tim7_handlers[NR_BAS_HANDLERS]={0};
+TimerHandler tim7_handlers[NR_BAS_HANDLERS] IN_CCM;
 const timer_dev timer7 = {
     .regs         = TIM7,
     .clk          = RCC_APB1Periph_TIM7,
@@ -141,7 +141,7 @@ const timer_dev timer7 = {
 };
 /** Timer 7 device (basic) */
 
-TimerHandler tim8_handlers[NR_ADV_HANDLERS]={0};
+TimerHandler tim8_handlers[NR_ADV_HANDLERS] IN_CCM;
 const timer_dev timer8 = {
     .regs         = TIM8,
     .clk          = RCC_APB2Periph_TIM8,
@@ -154,7 +154,7 @@ const timer_dev timer8 = {
 }; /** Timer 8 device (advanced) */
 
 
-TimerHandler tim9_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim9_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer9 = {
     .regs         = TIM9,
     .clk          = RCC_APB2Periph_TIM9,
@@ -166,7 +166,7 @@ const timer_dev timer9 = {
     .id           = 9,
 };
 
-TimerHandler tim10_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim10_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer10 = {
     .regs         = TIM10,
     .clk          = RCC_APB2Periph_TIM10,
@@ -178,7 +178,7 @@ const timer_dev timer10 = {
     .id           = 10,
 };
 
-TimerHandler tim11_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim11_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer11 = {
     .regs         = TIM11,
     .clk          = RCC_APB2Periph_TIM11,
@@ -191,7 +191,7 @@ const timer_dev timer11 = {
 };
 
 
-TimerHandler tim12_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim12_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer12 = {
     .regs         = TIM12,
     .clk          = RCC_APB1Periph_TIM12,
@@ -204,7 +204,7 @@ const timer_dev timer12 = {
 }; /** Timer 12 device (general-purpose) */
 
 
-TimerHandler tim13_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim13_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer13 = {
     .regs         = TIM13,
     .clk          = RCC_APB1Periph_TIM13,
@@ -216,7 +216,7 @@ const timer_dev timer13 = {
     .id           = 13,
 };
 
-TimerHandler tim14_handlers[NR_GEN_HANDLERS]={0};
+TimerHandler tim14_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer14 = {
     .regs         = TIM14,
     .clk          = RCC_APB1Periph_TIM14,
@@ -282,6 +282,7 @@ void timer_reset(const timer_dev *dev) {
 	RCC_APB1PeriphClockCmd(dev->clk, ENABLE);
 
     TIM_DeInit(dev->regs);
+
 
 }
 

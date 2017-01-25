@@ -46,6 +46,8 @@ again:
                 _initialized=true;
             }
             
+            if(recv_len) memset(recv, 0, recv_len); // for DEBUG
+            
             if(recv_len==0){ // only write
                 numbytes = send_len-1;
                 //                 uint8_t addr, uint8_t reg, uint8_t len, uint8_t * data)

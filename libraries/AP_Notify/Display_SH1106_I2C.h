@@ -20,7 +20,7 @@ public:
     void clear_screen() override;
 
 private:
-    void _timer();
+    bool _timer();
 
     AP_HAL::OwnPtr<AP_HAL::Device> _dev;
     uint8_t _displaybuffer[SH1106_COLUMNS * SH1106_ROWS_PER_PAGE];

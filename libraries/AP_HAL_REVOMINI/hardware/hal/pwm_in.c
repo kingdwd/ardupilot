@@ -364,6 +364,7 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 #ifdef PWM_SUPPORTED
     if (ppmsum == 0) { // PWM mode
 	uint8_t i;
+        TIM_TypeDef * last_tim=0;
 
         // interrupts via HAL timer's driver
 	timer_attach_all_interrupts(TIMER8,  pwmIRQHandler);
@@ -391,20 +392,21 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 	    
 	    // TIM configuration base *******************************************************
 
-	    
-	    TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-	    if (channel->tim == TIM1 || channel->tim == TIM8 || channel->tim == TIM9 || channel->tim == TIM10 || channel->tim == TIM11) {
-		TIM_TimeBaseStructure.TIM_Prescaler = 83; //200KHz
-            } else {
-		TIM_TimeBaseStructure.TIM_Prescaler = 41; //200KHz		
-	    }
+	    if(last_tim != channel->tim) {
+                TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
+	        if (channel->tim == TIM1 || channel->tim == TIM8 || channel->tim == TIM9 || channel->tim == TIM10 || channel->tim == TIM11) {
+		    TIM_TimeBaseStructure.TIM_Prescaler = 83; //200KHz
+                } else {
+	            TIM_TimeBaseStructure.TIM_Prescaler = 41; //200KHz		
+	        }
 
-	    TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
-	    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	    TIM_TimeBaseInit(channel->tim, &TIM_TimeBaseStructure);
-
+	        TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+	        TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	        TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	        TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+	        TIM_TimeBaseInit(channel->tim, &TIM_TimeBaseStructure);
+	        last_tim = channel->tim;
+            }
 
 	    // PWM input capture ************************************************************
 	    TIM_ICInitStructure.TIM_Channel = channel->tim_channel;
@@ -430,52 +432,49 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
     }  else 
 #endif
     { // ppm mode
-        timer_attach_all_interrupts(TIMER12, pwmIRQHandler); // TIM8 and TIM12 share one IRQ so to use TIM12 without TIM8 we MUST use timer's driver
         uint8_t i;
+        TIM_TypeDef * last_tim=0;
+
+        timer_attach_all_interrupts(TIMER12, pwmIRQHandler); // TIM8 and TIM12 share one IRQ so to use TIM12 without TIM8 we MUST use timer's driver
 
 	for (i = 0; i < num_ppm_channels; i++)   {
-
             const struct TIM_Channel *channel = &PWM_Channels[i];
-	
-            // timer_reset ******************************************************************
-	    channel->tim_clkcmd(channel->tim_clk, ENABLE);
 	
 	    // timer_pause ******************************************************************
 	    TIM_Cmd(channel->tim, DISABLE);
-	    // gpio_set_mode ****************************************************************
-	    channel->gpio_clkcmd(channel->gpio_clk, ENABLE);
 
-            channel->tim->CR1 = TIMER_CR1_ARPE;
-            channel->tim->PSC = 1;
-            channel->tim->SR = 0;
-            channel->tim->DIER = 0;
-            channel->tim->EGR = TIMER_EGR_UG;
-
-	    GPIO_InitStructure.GPIO_Pin = channel->gpio_pin;
-	    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-	    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-	    GPIO_Init(channel->gpio_port, &GPIO_InitStructure);
-	
 
             NVIC_EnableIRQ(channel->tim_irq);
             NVIC_SetPriority(channel->tim_irq,2);	
 	
-	    // TIM configuration base *******************************************************
-	    TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
 
-	    if (channel->tim == TIM1 || channel->tim == TIM8 || channel->tim == TIM9 || channel->tim == TIM10 || channel->tim == TIM11){
-	        TIM_TimeBaseStructure.TIM_Prescaler = 84-1; //2MHz
-	    }else{
-	        TIM_TimeBaseStructure.TIM_Prescaler = 42-1; //2MHz
-	    }
-            TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
-	    TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	    TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
-	    TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
-	    TIM_TimeBaseInit(channel->tim, &TIM_TimeBaseStructure);
+	    if(last_tim != channel->tim) {
+                // timer_reset ******************************************************************
+                channel->tim_clkcmd(channel->tim_clk, ENABLE);
 
+                channel->tim->CR1 = TIMER_CR1_ARPE;
+                channel->tim->PSC = 1;
+                channel->tim->SR = 0;
+                channel->tim->DIER = 0;
+                channel->tim->EGR = TIMER_EGR_UG;
+
+	        // TIM configuration base *******************************************************
+	        TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
+
+                if (channel->tim == TIM1 || channel->tim == TIM8 || channel->tim == TIM9 || channel->tim == TIM10 || channel->tim == TIM11){
+	            TIM_TimeBaseStructure.TIM_Prescaler = 84-1; //2MHz
+	        }else{
+	            TIM_TimeBaseStructure.TIM_Prescaler = 42-1; //2MHz
+	        }
+                TIM_TimeBaseStructure.TIM_Period = 0xFFFF;
+	        TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
+	        TIM_TimeBaseStructure.TIM_ClockDivision = TIM_CKD_DIV1;
+	        TIM_TimeBaseStructure.TIM_RepetitionCounter = 0;
+	        TIM_TimeBaseInit(channel->tim, &TIM_TimeBaseStructure);
+	        
+	        last_tim = channel->tim;
+            }
+            
 	    // PWM input capture ************************************************************
 	    TIM_ICInitStructure.TIM_Channel = channel->tim_channel;
 	    TIM_ICInitStructure.TIM_ICPolarity  = TIM_ICPolarity_Falling;
@@ -490,6 +489,16 @@ static inline void pwmInitializeInput(uint8_t ppmsum){
 	    // enable the CC interrupt request **********************************************
 	    TIM_ITConfig(channel->tim, channel->tim_cc, ENABLE);
 
+	    // gpio_set_mode ****************************************************************
+	    channel->gpio_clkcmd(channel->gpio_clk, ENABLE);
+
+	    GPIO_InitStructure.GPIO_Pin = channel->gpio_pin;
+	    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
+	    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+	    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+	    GPIO_Init(channel->gpio_port, &GPIO_InitStructure);
+	
 	    // connect pin to timer -  gpio_set_af_mode *************************************************************
 	    GPIO_PinAFConfig(channel->gpio_port, channel->gpio_af, channel->gpio_af_tim);
         }

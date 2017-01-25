@@ -48,6 +48,7 @@ private:
     void _take_sample();
 
     AP_HMC5843_BusDriver *_bus;
+    AP_HAL::DigitalSource *_drdy_pin;
 
     float _scaling[3];
     float _gain_scale;
@@ -66,6 +67,7 @@ private:
     
     bool _initialised:1;
     bool _force_external:1;
+    
 };
 
 class AP_HMC5843_BusDriver

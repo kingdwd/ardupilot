@@ -178,7 +178,7 @@ SECTIONS
 
 
 /* empty CCM sections */
-  .ccm (): {
+  .ccm (NOLOAD): {
       . = ALIGN(4);
       _sccm = .;
       *(.ccm)

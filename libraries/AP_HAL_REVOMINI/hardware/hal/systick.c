@@ -4,7 +4,7 @@
 #include <wirish.h>
 
 
-volatile uint64_t systick_uptime_millis;
+volatile uint64_t systick_uptime_millis IN_CCM;
 
 
 static void (*systick_user_callback)(void) = 0;
@@ -28,6 +28,7 @@ void systick_attach_callback(void (*callback)(void)) {
 void systick_init(uint32_t reload_val) {
     SysTick->LOAD = reload_val;
     systick_user_callback=0;
+    systick_uptime_millis=0;
     systick_enable();
 }
 
