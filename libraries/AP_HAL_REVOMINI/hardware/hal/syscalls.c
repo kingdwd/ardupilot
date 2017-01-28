@@ -60,10 +60,6 @@ int _getpid(void)
 	return 1;
 }
 
-char* get_stack_top(void)
-{
-	return (char*) __get_MSP();
-}
 
 /*
  * sbrk -- changes heap size size. Get nbytes more
@@ -81,7 +77,7 @@ caddr_t _sbrk(int nbytes) {
     uint32_t top = (unsigned int)get_stack_top();
 
     if ( top > (unsigned int)heap_ptr // there is place in stack
-        || top < 0x20000000 ) //       or stack not in RAM
+        || top < 0x20000000 ) //       or stack not in RAM TODO: check for RAM size from linker script
     {
         base = heap_ptr;
         heap_ptr += nbytes;

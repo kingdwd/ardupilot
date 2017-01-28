@@ -3,6 +3,11 @@
 #define __AP_HAL_REVOMINI_SCHEDULER_H__
 
 
+#pragma GCC push_options
+#pragma GCC optimize ("O2")
+#include <AP_HAL/AP_HAL.h>
+#pragma GCC pop_options
+
 #include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
 
 #include "AP_HAL_REVOMINI_Namespace.h"
@@ -14,7 +19,6 @@
 #include <systick.h>
 #include <boards.h>
 #include <timer.h>
-#include <AP_HAL/AP_HAL.h>
 #include <setjmp.h>
 
 #define REVOMINI_SCHEDULER_MAX_TIMER_PROCS 10
@@ -80,10 +84,16 @@ public:
     inline   uint32_t micros() {   /* return systick_micros();*/ return _micros(); }
     
     void     register_delay_callback(AP_HAL::Proc, uint16_t min_time_ms);
-    void     register_timer_process(AP_HAL::MemberProc);
+    void     register_timer_process(AP_HAL::MemberProc proc) { _register_timer_process(proc, 1000); }
     void     register_io_process(AP_HAL::MemberProc);
     void     suspend_timer_procs();
     void     resume_timer_procs();
+
+    static inline void     _register_timer_process(AP_HAL::MemberProc proc, uint32_t period) {
+        Revo_cb r = { .mp=proc };
+
+        _register_timer_task(period, r.h, NULL, 1);
+    }
 
     inline bool in_timerprocess() {   return _in_timer_proc; }
 

@@ -215,67 +215,64 @@ uint8_t REVOMINIRCInput::num_channels()
 #endif
 }
 
+
+uint16_t REVOMINIRCInput::last_4=0;
+
 //#define LOST_TIME 50 // this is wrong! Any packet lost and viola... 
 #define LOST_TIME 500
 
+uint16_t REVOMINIRCInput::_read_dsm(uint8_t ch){
+    uint16_t data=0;
+    noInterrupts();
+        _last_read = _dsm_last_signal;
+        data = _dsm_val[ch];
+        _valid_channels = _dsm_channels;
+    interrupts();
+    return data        
+}
+
+uint16_t REVOMINIRCInput::_read_ppm(uint8_t ch,uint8_t n){
+    uint16_t data=0;
+    noInterrupts();
+        _last_read = parsers[n].last_signal;
+        data =       parsers[n].val[ch];
+        _valid_channels = parsers[n].valid_channels;
+    interrupts();
+    return data        
+
+}
 
 uint16_t REVOMINIRCInput::read(uint8_t ch)
 {
     uint16_t data=0;
     uint32_t pulse=0;
 
-
     if(ch>=REVOMINI_RC_INPUT_NUM_CHANNELS) return 0;
 
-
-    if(_dsm_last_signal >_last_read){ 
-        noInterrupts();
-        _last_read = _dsm_last_signal;
-        data = _dsm_val[ch];
-        pulse = _dsm_last_signal;
-        _valid_channels = _dsm_channels;
-        interrupts();
+    if(_dsm_last_signal >_last_read){ // read new data
+        data = _read_dsm(ch);
+        pulse = _last_read;
         _last_read_from = BOARD_INPUT_DSM;
     } else if( parsers[0].last_signal >_last_read) {
-        noInterrupts();
-        _last_read = parsers[0].last_signal;
-        data =       parsers[0].val[ch];
+        data = _read_ppm(ch,0);
         pulse =      _last_read;
-        _valid_channels = parsers[0].valid_channels;
-        interrupts();
         _last_read_from = BOARD_INPUT_P0;
     } else if( parsers[1].last_signal >_last_read) {
-        noInterrupts();
-        _last_read = parsers[1].last_signal;
-        data =       parsers[1].val[ch];
+        data = _read_ppm(ch,1);
         pulse =      _last_read;
-        _valid_channels = parsers[1].valid_channels;
-        interrupts();
         _last_read_from = BOARD_INPUT_P1;
     } else {
-        switch(_last_read_from){
+        switch(_last_read_from){                // read latest source
         case BOARD_INPUT_DSM:
-            noInterrupts();
-            _last_read = _dsm_last_signal;
-            data = _dsm_val[ch];
-            _valid_channels = _dsm_channels;
-            interrupts();
+            data = _read_dsm(ch);
             pulse = _last_read;
             break;
         case BOARD_INPUT_P0:
-            noInterrupts();
-            _last_read = parsers[0].last_signal;
-            data =       parsers[0].val[ch];
-            _valid_channels = parsers[0].valid_channels;
-            interrupts();
+            data = _read_ppm(ch,0);
             pulse =      _last_read;
             break;
         case BOARD_INPUT_P1:
-            noInterrupts();
-            _last_read = parsers[1].last_signal;
-            data =       parsers[1].val[ch];
-            _valid_channels = parsers[1].valid_channels;
-            interrupts();
+            data = _read_ppm(ch,1);
             pulse =      _last_read;
             break;
         default:  
@@ -290,15 +287,28 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
         }
     
     }
-    
+
 
     /* Check for override */
     uint16_t over = _override[ch];
     if(over) return over;
 
-    if( (ch == 2) && (systick_uptime() - pulse > LOST_TIME)) 
-        data = 900;
+    if( ch == 4) {
+        last_4 = data;
+    }
 
+    if( ch == 2) {
+        if( systick_uptime() - pulse > LOST_TIME)
+            data = 900;
+
+/*
+ Receiver-DEVO-RX719-for-Walkera-Aibao
+ failsafe: mode below 1000 and throttle at 1500
+*/            
+        if(last_4 < 1000 && data >1300)
+            data = 900;
+
+    }
     return data;
 }
 

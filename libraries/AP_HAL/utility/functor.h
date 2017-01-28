@@ -71,6 +71,7 @@ public:
     static constexpr Functor bind(T *obj)
     {
         return { obj, method_wrapper<T, method> };
+//        return new Functor( obj, method_wrapper<T, method> );
     }
 
 private:

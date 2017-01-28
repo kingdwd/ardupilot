@@ -1,8 +1,12 @@
-
 #ifndef __AP_HAL_REVOMINI_RCINPUT_H__
 #define __AP_HAL_REVOMINI_RCINPUT_H__
 
-#include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
+#pragma GCC push_options
+#pragma GCC optimize ("O2")
+#include <AP_HAL/AP_HAL.h>
+#pragma GCC pop_options
+
+#include "AP_HAL_REVOMINI.h"
 #include "UARTDriver.h"
 #include <usart.h>
 
@@ -43,8 +47,10 @@ public:
     volatile uint16_t val[REVOMINI_RC_INPUT_NUM_CHANNELS];
     volatile uint8_t valid_channels;
 
-private:
+protected:
     void parse_pulses(void);
+
+private:
 
     void rxIntRC(uint16_t value0, uint16_t value1, bool state);
 
@@ -126,6 +132,12 @@ private:
 
     static uint64_t _last_read;
     static uint8_t  _valid_channels;
+
+
+    uint16_t _read_dsm(uint8_t ch);
+    uint16_t _read_ppm(uint8_t ch,uint8_t n);
+    
+    static uint16_t last_4;
     
     /* override state */
     static uint16_t _override[8];

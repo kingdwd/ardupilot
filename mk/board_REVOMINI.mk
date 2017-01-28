@@ -124,19 +124,19 @@ EXTRAFLAGS += $(SKETCHLIBINCLUDES) -DARDUPILOT_BUILD -DTESTS_MATHLIB_DISABLE  -D
 
 #-Werror
 WARNFLAGS       =   -Wall -Wshadow -Wpointer-arith -Wcast-align -Wno-psabi -Wno-unused-parameter
-WARNFLAGS      +=   -Wwrite-strings -Wformat=2 -Wshadow -Wfloat-equal -Wpointer-arith -Wlogical-op -Wmissing-declarations -Wpacked
+WARNFLAGS      +=   -Wwrite-strings -Wformat=2 -Wshadow -Wfloat-equal -Wpointer-arith -Wlogical-op -Wmissing-declarations -Wpacked -Wno-pragmas
 WARNFLAGS      +=   -Wextra -Wlogical-op  -Wno-unknown-pragmas -Wno-redundant-decls -Wno-packed -Wno-error=double-promotion
 WARNFLAGS      +=   -Wno-error=unused-variable -Wno-error=reorder -Wno-error=float-equal -Wno-error=unused-parameter -Wno-missing-field-initializers
 WARNFLAGS      +=   -Wno-error=pmf-conversions -Wno-error=missing-declarations -Wno-error=unused-function -Werror=format-security -Werror=array-bounds
 
 #OPTFLAGS        = -O0
-OPTFLAGS        = -Og
-#OPTFLAGS        = -Os
+#OPTFLAGS        = -Og
+OPTFLAGS        = -Os
 OPTFLAGS       += -fsingle-precision-constant -g3 -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer -fearly-inlining -fpredictive-commoning
 OPTFLAGS       += -fno-builtin-printf -fno-aggressive-loop-optimizations 
 #OPTFLAGS       += -ffast-math 
 OPTFLAGS       += -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math -funsafe-math-optimizations -fno-finite-math-only
-OPTFLAGS       += -finline-functions-called-once
+OPTFLAGS       += -finline-functions-called-once -fearly-inlining
 OPTFLAGS       += -finline-small-functions
 OPTFLAGS       += -fmerge-all-constants
 
@@ -182,9 +182,11 @@ GLOBAL_CXXFLAGS := -fno-rtti       #Disable generation of information about ever
 GLOBAL_CXXFLAGS += -fno-exceptions -fno-threadsafe-statics # not true C++
 GLOBAL_CXXFLAGS += -fconserve-space -fno-enforce-eh-specs
 
-#GLOBAL_CXXFLAGS += -Wall  -std=gnu++11 
-#GLOBAL_CXXFLAGS += -Wall  -std=gnu99
-GLOBAL_CXXFLAGS += -Wall  -std=gnu++0x
+#GLOBAL_CXXFLAGS += -Wall  -std=gnu++0x
+GLOBAL_CXXFLAGS += -Wall  -std=gnu++11
+#GLOBAL_CXXFLAGS += -Wall  -std=gnu++1y
+#GLOBAL_CXXFLAGS += -Wall  -std=c++11
+
 # Downgrade some diagnostics about nonconformant code from errors to warnings. Thus, using "-fpermissive" will allow some nonconforming code to compile.
 GLOBAL_CXXFLAGS += -fpermissive   
 GLOBAL_CXXFLAGS += $(GLOBAL_CFLAGS) $(OPTFLAGS)

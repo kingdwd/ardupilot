@@ -21,11 +21,12 @@ void PPM_parser::init(uint8_t ch){
     channel_ctr=0;
     
     _ch = ch + 1;
-    hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&PPM_parser::parse_pulses,void));
+//    hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&REVOMINI::PPM_parser::parse_pulses, void));
+    REVOMINIScheduler::_register_timer_process(FUNCTOR_BIND_MEMBER(&PPM_parser::parse_pulses, void), 1000);
 }
 
 
-void PPM_parser::parse_pulses(){
+void PPM_parser::parse_pulses(void){
     if(_ch==0) return; // not initialized
 
     Pulse p;
@@ -35,7 +36,6 @@ void PPM_parser::parse_pulses(){
         rxIntRC(last_pulse.length, p.length, p.state);
         last_pulse = p;
     }
-
 }
 
 

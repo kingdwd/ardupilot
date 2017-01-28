@@ -207,15 +207,6 @@ void REVOMINIScheduler::_delay_microseconds(uint16_t us)
 }
 
 
-// register standard Ardupilot's task on 1KHz
-void REVOMINIScheduler::register_timer_process(AP_HAL::MemberProc proc)
-{
-    Revo_cb r = { .mp=proc };
-
-    _register_timer_task(1000, r.h, NULL, 1);
-}
-
-
 void REVOMINIScheduler::register_delay_callback(AP_HAL::Proc proc, uint16_t min_time_ms)
 {
     static bool init_done=false;

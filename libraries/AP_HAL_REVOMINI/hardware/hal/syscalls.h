@@ -3,7 +3,12 @@ int _kill(int pid, int sig);
 
 void _exit(int status);
 int _getpid(void);
-char* get_stack_top(void);
+
+static inline char* get_stack_top(void)
+{
+        return (char*) __get_MSP();
+}
+
 caddr_t _sbrk(int nbytes);
 int _open(const char *path, int flags, ...);
 int _close(int fd);

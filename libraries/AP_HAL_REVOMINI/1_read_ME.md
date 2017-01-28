@@ -9,10 +9,10 @@ FlexiPort - OSD, Serial2
 Input Port - PWM input is not supported - this is general trend
 pin 1 of Input port is GND
 pin 2 of Input port is +5
-pin 3 of Input port is PPM/SBUS (SBUS works, DSM still not tested)
-pin 4 of Input port is a Buzzer pin (requires additional transistor!)
+pin 3 of Input port is PPM/SBUS/DSM input
+pin 4 of Input port is 2nd PPM/SBUS/DSM input
 pins 5&6 of Input port are Tx and Rx of Serial3 (for GPS)
-pins 7&8 of Input port are SCL and SDA of external I2C
+pins 7&8 of Input port are SCL and SDA of external I2C (or Tx and Rx for SoftSerial)
 
 
 Output Port for MOTORs
@@ -35,7 +35,7 @@ Connection to OpLink port
 Pin 1 is Gnd, 
 pin 2 is +5(DSM sat requires 3.3!)
 pin 3 is Rx 
-pin 4 is Enable for 3.3 stab. 
+pin 4 is Enable for 3.3 stab.
 
 So it will be best to use satellites with Bind button.
 

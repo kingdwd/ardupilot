@@ -19,7 +19,12 @@
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
 
+#pragma GCC push_options
+#pragma GCC optimize ("O2")
+
 #include <AP_HAL/AP_HAL.h>
+#pragma GCC pop_options
+
 #include "AP_HAL_REVOMINI_Namespace.h"
 #include "AnalogIn.h"
 #include <adc.h>
@@ -40,17 +45,19 @@ REVOMINIAnalogIn::REVOMINIAnalogIn():
 	_vcc(REVOMINIAnalogSource(ANALOG_INPUT_REVOMINI_VCC))
 {}
 
+
 void REVOMINIAnalogIn::init() {
 
 //    setupADC(); // init and enable all ADC - individually
 
     // Register _timer_event in the scheduler. 
-    hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&REVOMINIAnalogIn::_timer_event,void));
-    // Register each private channel with REVOMINIAnalogIn. 
-    _register_channel(&_vcc);
+    REVOMINIScheduler::_register_timer_process(FUNCTOR_BIND_MEMBER(&REVOMINIAnalogIn::_timer_event,void), 1000);
+
+    _register_channel(&_vcc);     // Register each private channel with REVOMINIAnalogIn. 
     
     cnv_started=false;
 }
+
 
 REVOMINIAnalogSource* REVOMINIAnalogIn::_create_channel(uint8_t chnum) {
 
