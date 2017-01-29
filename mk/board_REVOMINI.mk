@@ -130,8 +130,8 @@ WARNFLAGS      +=   -Wno-error=unused-variable -Wno-error=reorder -Wno-error=flo
 WARNFLAGS      +=   -Wno-error=pmf-conversions -Wno-error=missing-declarations -Wno-error=unused-function -Werror=format-security -Werror=array-bounds
 
 #OPTFLAGS        = -O0
-#OPTFLAGS        = -Og
-OPTFLAGS        = -Os
+OPTFLAGS        = -Og
+#OPTFLAGS        = -Os
 OPTFLAGS       += -fsingle-precision-constant -g3 -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer -fearly-inlining -fpredictive-commoning
 OPTFLAGS       += -fno-builtin-printf -fno-aggressive-loop-optimizations 
 #OPTFLAGS       += -ffast-math 

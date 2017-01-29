@@ -35,6 +35,7 @@ bool Soft_I2C::_Start(void)
 {
     SDA_H;            // just in case
     SCL_H_NW;
+    _delay(); // time to discharge line
     
     if (!SCL_read)       return false; // bus busy
     if (!SDA_read)       return false; // bus busy
