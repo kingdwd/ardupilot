@@ -111,6 +111,13 @@ void DataFlash_REVOMINI::Init(void)
 
     // the last page is reserved for config information
     df_NumPages = DF_LAST_PAGE - 1;
+    
+}
+
+
+bool DataFlash_REVOMINI::logging_failed() const
+{
+    return false;
 }
 
 // This function is mainly to test the device

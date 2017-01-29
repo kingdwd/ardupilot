@@ -44,22 +44,32 @@ private:
     bool	      _sem_take(uint8_t timeout);
     uint16_t df_NumPages;
 
- // Select device 
-    bool cs_assert();
-
-    // Deselect device
-    void cs_release();
+    bool cs_assert(); // Select device 
+    void cs_release(); // Deselect device
     
     uint8_t spi_read(void);
     void spi_write(uint8_t data);
     void spi_write(int data) { spi_write((uint8_t)data); }
+
+//TODO
+    void stop_logging(void);
+    void BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t wait);
+    void PageToBuffer(uint8_t BufferNum, uint16_t PageAdr);
+    void PageErase(uint16_t PageAdr);
+    void BlockErase(uint16_t BlockAdr);
+    void ChipErase();
+    void BlockWrite(uint8_t, uint16_t, const void*, uint8_t, const void*, uint16_t);
+    bool BlockRead(uint8_t BufferNum, uint16_t IntPageAdr, void *pBuffer, uint16_t size);
+
 
 public:
     void        Init();
     void        ReadManufacturerID();
     bool        CardInserted();
     uint8_t     ReadStatus();
-    
+
+    bool logging_enabled() const { return true; }
+    bool logging_failed() const;    
 };
 
 #endif

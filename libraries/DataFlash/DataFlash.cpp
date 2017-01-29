@@ -62,7 +62,7 @@ bool DataFlash_Class::logging_failed() const
 {
     if (_next_backend < 1) {
         // we should not have been called!
-        return true;
+        return false;
     }
     return backends[0]->logging_failed();
 }
@@ -118,6 +118,9 @@ void DataFlash_Class::EraseAll() {
 }
 // change me to "LoggingAvailable"?
 bool DataFlash_Class::CardInserted(void) {
+
+    if(_next_backend==0) return true;
+
     for (uint8_t i=0; i< _next_backend; i++) {
         if (backends[i]->CardInserted()) {
             return true;

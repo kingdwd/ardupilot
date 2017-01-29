@@ -16,6 +16,7 @@
 #include "DataFlash_Block.h"
 #include "DataFlash_File.h"
 #include "DataFlash_MAVLink.h"
+#include "DataFlash_REVOMINI.h"
 #include "DFMessageWriter.h"
 
 extern const AP_HAL::HAL& hal;
@@ -44,6 +45,18 @@ void DataFlash_Class::Init(const struct LogStructure *structures, uint8_t num_ty
         }
         if (backends[_next_backend] == nullptr) {
             hal.console->printf("Unable to open DataFlash_File");
+        } else {
+            _next_backend++;
+        }
+    }
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI && 0
+    {
+        DFMessageWriter_DFLogStart *message_writer = new DFMessageWriter_DFLogStart(_firmware_string);
+        backends[_next_backend] = new DataFlash_REVOMINI(*this,  message_writer);
+        if (backends[_next_backend] == nullptr) {
+            hal.console->printf("Unable to open DataFlash_REVOMINI");
         } else {
             _next_backend++;
         }
