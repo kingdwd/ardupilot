@@ -228,7 +228,7 @@ uint16_t REVOMINIRCInput::_read_dsm(uint8_t ch){
         data = _dsm_val[ch];
         _valid_channels = _dsm_channels;
     interrupts();
-    return data        
+    return data;
 }
 
 uint16_t REVOMINIRCInput::_read_ppm(uint8_t ch,uint8_t n){
@@ -238,8 +238,7 @@ uint16_t REVOMINIRCInput::_read_ppm(uint8_t ch,uint8_t n){
         data =       parsers[n].val[ch];
         _valid_channels = parsers[n].valid_channels;
     interrupts();
-    return data        
-
+    return data;
 }
 
 uint16_t REVOMINIRCInput::read(uint8_t ch)
