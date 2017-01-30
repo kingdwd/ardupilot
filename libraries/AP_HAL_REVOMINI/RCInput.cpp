@@ -104,7 +104,7 @@ void REVOMINIRCInput::init() {
 
 /* OPLINK AIR port pinout
 1       2       3       4       5       6       7
-                        
+               D2      A15                
 gnd    +5      26      103                     
                rx      pow
                int     cs

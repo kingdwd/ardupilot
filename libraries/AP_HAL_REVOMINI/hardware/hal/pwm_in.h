@@ -107,6 +107,9 @@ struct TIM_Channel {
         const timer_dev * timer;
         uint8_t channel_n; // for work with Timer driver
 }; 
+
+extern const struct TIM_Channel PWM_Channels[];
+#define PWM_CHANNELS (sizeof(PWM_Channels) / sizeof(struct TIM_Channel) )
  
 /**
  * Set the PWM duty on the given pin.

@@ -400,6 +400,14 @@ void AP_Baro::init(void)
     _num_drivers = 1;
 #endif
 
+
+
+#ifdef HAL_BARO_BMP280_I2C_ADDR
+    ADD_BACKEND(AP_Baro_BMP280::probe(*this,
+                                      std::move(hal.i2c_mgr->get_device(HAL_BARO_BMP280_BUS, HAL_BARO_BMP280_I2C_ADDR))));
+#endif
+
+
     // can optionally have baro on I2C too
     if (_ext_bus >= 0) {
         ADD_BACKEND(AP_Baro_MS56XX::probe(*this,
