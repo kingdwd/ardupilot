@@ -129,11 +129,20 @@ inline void goDFU(){            // Reboot to BootROM - to DFU mode
 
 void board_set_rtc_signature(uint32_t sig)
 {
+
+        RCC->APB1ENR |= RCC_APB1ENR_PWREN;
         // enable the backup registers.
         PWR->CR   |= PWR_CR_DBP;
         RCC->BDCR |= RCC_BDCR_RTCEN;
+        RCC->AHB1ENR |= RCC_AHB1ENR_BKPSRAMEN;
+        PWR_BackupAccessCmd(ENABLE);
 
+//        RTC_WriteProtectionCmd(DISABLE);
+        for(volatile int i=0; i<50; i++);
+        
         RTC_WriteBackupRegister(0, sig);
+
+        PWR_BackupAccessCmd(DISABLE);
 
         // disable the backup registers
 //        RCC->BDCR &= RCC_BDCR_RTCEN;
@@ -159,7 +168,7 @@ uint32_t board_get_rtc_signature()
 
 // 1st executing function
 
-void inline init(void) {
+void INLINE init(void) {
     setupCCM(); // needs because stack in CCM
     
 

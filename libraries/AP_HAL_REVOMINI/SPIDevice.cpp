@@ -55,13 +55,13 @@ static const spi_pins board_spi_pins[] = {
 };
 
 
-REVOMINI::Semaphore SPIDevice::_semaphores[3]; // per bus
+REVOMINI::Semaphore SPIDevice::_semaphores[4] IN_CCM; // per bus+1
 
 
 bool SPIDevice::bus_busy=false;
 
 
-struct spi_trans SPIDevice::spi_trans_array[256];
+struct spi_trans SPIDevice::spi_trans_array[256]  IN_CCM;
 uint8_t SPIDevice::spi_trans_ptr=0;
 
 
@@ -90,9 +90,13 @@ SPIDevice::SPIDevice(const SPIDesc &device_desc)
     : _desc(device_desc)
     , _initialized(false)
 {
-    _cs = REVOMINIGPIO::get_channel(_desc.cs_pin);
-    if (!_cs) {
-        AP_HAL::panic("Unable to instantiate cs pin");
+    if(_desc.cs_pin < BOARD_NR_GPIO_PINS) {
+        _cs = REVOMINIGPIO::get_channel(_desc.cs_pin);
+        if (!_cs) {
+            AP_HAL::panic("Unable to instantiate cs pin");
+        }
+    } else {
+        _cs = NULL;
     }
         
 }        
@@ -116,6 +120,9 @@ spi_baud_rate SPIDevice::determine_baud_rate(SPIFrequency freq)
 	spi_baud_rate rate;
 
 	switch(freq) {
+	case SPI_36MHZ:
+		rate = SPI_BAUD_PCLK_DIV_2;
+		break;
 	case SPI_18MHZ:
 		rate = SPI_BAUD_PCLK_DIV_4;
 		break;
@@ -176,8 +183,10 @@ static void dly_spi() {
 
 
 void SPIDevice::init(){
-    _cs->mode(OUTPUT);
-    _cs_release();    // do not hold the SPI bus initially
+    if(_cs) {
+        _cs->mode(OUTPUT);
+        _cs_release();    // do not hold the SPI bus initially
+    }
 
     const spi_pins *pins = dev_to_spi_pins(_desc.dev);
 
@@ -350,8 +359,10 @@ bool SPIDevice::transfer_fullduplex(const uint8_t *send, uint8_t *recv, uint32_t
 
 
 void SPIDevice::init(){
-    _cs->mode(OUTPUT);
-    _cs_release();    // do not hold the SPI bus initially
+    if(_cs) {
+        _cs->mode(OUTPUT);
+        _cs_release();    // do not hold the SPI bus initially
+    }
 
     spi_init(_desc.dev); // disable device
 
@@ -391,7 +402,7 @@ bool SPIDevice::set_speed(AP_HAL::Device::Speed speed)
     }
 
 //    spi_master_enable(_desc.dev, determine_baud_rate(_speed), _desc.mode, MSBFIRST);
-    spi_set_speed(_desc.dev, determine_baud_rate(_speed));
+    spi_set_speed(_desc.dev, determine_baud_rate(_speed)); //- on cs_assert()
     
     return true;
 }

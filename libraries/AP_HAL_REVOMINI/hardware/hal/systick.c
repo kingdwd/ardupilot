@@ -78,6 +78,9 @@ static void trobe(){
         }
         gpio_write_bit(PIN_MAP[HAL_GPIO_C_LED_PIN].gpio_device, PIN_MAP[HAL_GPIO_C_LED_PIN].gpio_bit, n);
 
+        volatile int j =10;
+        while(--j);
+
         i++;
     }
 

@@ -106,7 +106,7 @@ void boardInit(void);
 #define BOARD_COMPASS_DEFAULT HAL_COMPASS_HMC5843
 #define BOARD_COMPASS_HMC5843_I2C_ADDR 0x1E
 #define BOARD_HMC5883_DRDY_PIN  38  // PB7 - but it not used by driver
-#define BOARD_COMPASS_HMC5843_ROTATION ROTATION_NONE //ROTATION_YAW_180
+#define BOARD_COMPASS_HMC5843_ROTATION ROTATION_YAW_270 //  ROTATION_ROLL_180 // ROTATION_PITCH_180 //
 
 #define BOARD_INS_DEFAULT HAL_INS_MPU60XX_SPI
 #define BOARD_INS_ROTATION  ROTATION_YAW_180
@@ -132,9 +132,10 @@ void boardInit(void);
 #define REVO_MOTORS_CLEANFLIGHT 2
 
 
-   //                                    name            device   bus  mode         cs_pin                 speed_low       speed_high
-#define BOARD_SPI_DEVICES    { BOARD_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, BOARD_MPU6000_CS_PIN,   SPI_1_125MHZ,   SPI_18MHZ }, \
-                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
+   //                                    name            device   bus  mode         cs_pin                       speed_low       speed_high
+#define BOARD_SPI_DEVICES    { BOARD_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, BOARD_MPU6000_CS_PIN,          SPI_1_125MHZ,   SPI_18MHZ }, \
+                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /* device controls CS */ , SPI_1_125MHZ,   SPI_36MHZ },
+//                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /**/ BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
 
 
 /*

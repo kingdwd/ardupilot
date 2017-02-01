@@ -23,12 +23,15 @@ extern const AP_HAL::HAL& hal;
 
 static uint8_t buffer[2][DF_PAGE_SIZE];
 
+
+AP_HAL::OwnPtr<AP_HAL::SPIDevice> DataFlash_Revo::_spi = nullptr;
+AP_HAL::Semaphore                *DataFlash_Revo::_spi_sem = nullptr;
+bool                              DataFlash_Revo::log_write_started=false;
+
 // Public Methods //////////////////////////////////////////////////////////////
 void DataFlash_Revo::Init()
 {
 
-    DataFlash_Backend::Init();
-    
     df_NumPages=0;
     
     hal.gpio->pinMode(DF_RESET,OUTPUT);
@@ -50,8 +53,15 @@ void DataFlash_Revo::Init()
         return; /* never reached */
     }
 
+    
 
-    log_write_started=true;
+    _spi_sem->take(10);
+    _spi->set_speed(AP_HAL::Device::SPEED_LOW);
+    _spi_sem->give();
+
+    DataFlash_Backend::Init();
+
+    log_write_started = true;
 
     df_PageSize = DF_PAGE_SIZE;
 
@@ -64,6 +74,9 @@ void DataFlash_Revo::Init()
 //  try to take a semaphore safely from both in a timer and outside
 bool DataFlash_Revo::_sem_take(uint8_t timeout)
 {
+
+    if(!_spi_sem) return false;
+
     if (hal.scheduler->in_timerprocess()) {
         return _spi_sem->take_nonblocking();
     }
@@ -73,6 +86,8 @@ bool DataFlash_Revo::_sem_take(uint8_t timeout)
 bool DataFlash_Revo::cs_assert(){
     if (!_sem_take(50))
         return false;
+
+    _spi->set_speed(AP_HAL::Device::SPEED_HIGH);
 
     hal.gpio->write(DF_RESET,0);
     return true;
@@ -132,10 +147,12 @@ uint8_t DataFlash_Revo::ReadStatus()
 }
 
 
-void DataFlash_Revo::PageToBuffer(unsigned char BufferNum, uint16_t PageAdr)
+void DataFlash_Revo::PageToBuffer(unsigned char BufferNum, uint16_t pageNum)
 {
 
 //	pread(flash_fd, buffer[BufferNum], DF_PAGE_SIZE, (PageAdr-1)*DF_PAGE_SIZE);
+
+    uint32_t PageAdr = pageNum * DF_PAGE_SIZE;
 
     if (!cs_assert()) return;
 
@@ -152,10 +169,12 @@ void DataFlash_Revo::PageToBuffer(unsigned char BufferNum, uint16_t PageAdr)
     cs_release();
 }
 
-void DataFlash_Revo::BufferToPage (unsigned char BufferNum, uint16_t PageAdr, unsigned char wait)
+void DataFlash_Revo::BufferToPage (unsigned char BufferNum, uint16_t pageNum, unsigned char wait)
 {
     //	pwrite(flash_fd, buffer[BufferNum], DF_PAGE_SIZE, (PageAdr-1)*(uint32_t)DF_PAGE_SIZE);
     
+    uint32_t PageAdr = pageNum * DF_PAGE_SIZE;
+
     Flash_Jedec_WriteEnable();
     
     if (!cs_assert()) return;
@@ -209,8 +228,10 @@ bool DataFlash_Revo::BlockRead(uint8_t BufferNum, uint16_t IntPageAdr, void *pBu
 
 
 
-void DataFlash_Revo::PageErase (uint16_t PageAdr)
+void DataFlash_Revo::PageErase (uint16_t pageNum)
 {
+
+    uint32_t PageAdr = pageNum * DF_PAGE_SIZE;
 
     uint8_t cmd[4];
     cmd[0] = sector_erase;
@@ -240,10 +261,17 @@ void DataFlash_Revo::BlockErase (uint16_t BlockAdr)
 
 void DataFlash_Revo::ChipErase()
 {
-    for (int i=0; i<DF_NUM_PAGES; i++) {
-        PageErase(i);
-        hal.scheduler->delay(1);
-    }
+
+    uint8_t cmd[1];
+    cmd[0] = JEDEC_BULK_ERASE;
+
+    Flash_Jedec_WriteEnable();
+    
+    if (!cs_assert()) return;
+
+    _spi->transfer(cmd, sizeof(cmd), NULL, 0);
+        
+    cs_release();
 }
 
 

@@ -44,6 +44,7 @@ typedef enum SPIFrequency {
     SPI_562_500KHZ  = 5, /**< 562.500 KHz */
     SPI_281_250KHZ  = 6, /**< 281.250 KHz */
     SPI_140_625KHZ  = 7, /**< 140.625 KHz */
+    SPI_36MHZ       = 8, /**< 36 MHz */
 } SPIFrequency;
 
 
@@ -99,7 +100,7 @@ public:
     inline AP_HAL::Device::PeriodicHandle register_periodic_callback(
         uint32_t period_usec, AP_HAL::Device::PeriodicCb proc) override
     {
-        return REVOMINIScheduler::register_timer_task(period_usec, proc, &_semaphores[_desc.bus]);
+        return REVOMINIScheduler::register_timer_task(period_usec, proc, &_semaphores[_desc.bus-1]);
     }
 
 
@@ -128,13 +129,13 @@ protected:
     AP_HAL::DigitalSource *_cs;
     SPIFrequency _speed;
 
-    static REVOMINI::Semaphore _semaphores[3]; // per bus
+    static REVOMINI::Semaphore _semaphores[4]; // per bus +1
 
     bool _initialized;
     void init(void);
 
-    inline void _cs_assert(){                    _cs->write(0); delay_ns100(1); } // Select device and wait a little
-    inline void _cs_release(){  delay_ns100(5);  _cs->write(1); } // Deselect device, time from http://datasheetspdf.com/mobile/735133/MPU-6000.html page 19
+    inline void _cs_assert(){ spi_set_speed(_desc.dev, determine_baud_rate(_speed)); if(_cs) _cs->write(0); delay_ns100(1); } // Select device and wait a little
+    inline void _cs_release(){  delay_ns100(5);                                      if(_cs) _cs->write(1); } // Deselect device, time from http://datasheetspdf.com/mobile/735133/MPU-6000.html page 19
 
     const spi_pins* dev_to_spi_pins(const spi_dev *dev);
 
