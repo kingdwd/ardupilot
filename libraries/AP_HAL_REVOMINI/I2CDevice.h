@@ -35,8 +35,8 @@
 //#define SOFT_I2C
 
 // bus 2 (soft) pins
-#define SOFT_SCL BOARD_SOFT_SCL
-#define SOFT_SDA BOARD_SOFT_SDA
+//#define SOFT_SCL BOARD_SOFT_SCL
+//#define SOFT_SDA BOARD_SOFT_SDA
 
 using namespace REVOMINI;
 
@@ -76,14 +76,18 @@ REVOI2CDevice(uint8_t bus, uint8_t address)
 	    dev = _I2C2;
 #endif
 	    break;
+
+#if defined( BOARD_SOFT_SCL) && defined(BOARD_SOFT_SDA)
+
 	case 2:         // this bus can use only soft I2C driver
 	    s_i2c = Soft_I2C( 
-                PIN_MAP[SOFT_SCL].gpio_device,     PIN_MAP[SOFT_SCL].gpio_bit,
-                PIN_MAP[SOFT_SDA].gpio_device,     PIN_MAP[SOFT_SDA].gpio_bit
+                PIN_MAP[BOARD_SOFT_SCL].gpio_device,     PIN_MAP[BOARD_SOFT_SCL].gpio_bit,
+                PIN_MAP[BOARD_SOFT_SDA].gpio_device,     PIN_MAP[BOARD_SOFT_SDA].gpio_bit
             );
+            break;
 	}
         _dev = dev; // remember
-
+#endif
 
     }
     

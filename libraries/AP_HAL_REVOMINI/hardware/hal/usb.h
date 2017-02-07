@@ -106,7 +106,9 @@ int usb_configure(usb_attr_t * attr);
 
 void USB_OTG_BSP_mDelay (const uint32_t msec);
 
-
+extern uint8_t is_usb_connected(usb_attr_t *attr);
+uint8_t is_usb_opened();
+void reset_usb_opened();
 
 int usb_write(uint8_t *buf, unsigned int nbytes);
 int usb_read(void  * buf, unsigned int nbytes);
@@ -115,7 +117,7 @@ uint32_t usb_data_available(void);
 void usb_reset_rx();
 void usb_reset_tx();
 
-static inline void usb_putc(uint8_t b){  usb_write(&b, 1); }
+static inline uint8_t usb_putc(uint8_t b){  return usb_write(&b, 1); }
 //uint8_t usb_getc(void);
 static inline uint8_t usb_getc(void){ uint8_t c;  usb_read(&c, 1);  return c; }
 
@@ -187,7 +189,6 @@ void VCP_MarkWritten(unsigned sz);
 
 int usb_periphcfg(FunctionalState state);
 
-extern uint8_t is_usb_connected();
 
 void VCP_SetUSBTxBlocking(uint8_t Mode);
 void OTG_FS_IRQHandler(void);

@@ -112,6 +112,28 @@ void REVOMINIGPIO::toggle(uint8_t pin)
 }
 
 
+/* Interrupt interface: */
+// TODO - add ability to attach not only C functions but class methods too
+bool REVOMINIGPIO::_attach_interrupt(uint8_t pin, AP_HAL::Proc p, uint8_t mode, uint8_t priority)
+{
+    if ( (pin >= BOARD_NR_GPIO_PINS) || !p) return false;
+
+    exti_attach_interrupt_pri((afio_exti_num)(PIN_MAP[pin].gpio_bit),
+                           gpio_exti_port(PIN_MAP[pin].gpio_device),
+                           p, exti_out_mode((ExtIntTriggerMode)mode),
+                           priority);
+
+    return true;
+}
+
+void REVOMINIGPIO::detach_interrupt(uint8_t pin)
+{
+    if ( pin >= BOARD_NR_GPIO_PINS) return;
+
+    exti_detach_interrupt((afio_exti_num)(PIN_MAP[pin].gpio_bit));
+}
+
+
 
 /* Alternative interface: */
 AP_HAL::DigitalSource* REVOMINIGPIO::channel(uint16_t pin) {
@@ -119,18 +141,6 @@ AP_HAL::DigitalSource* REVOMINIGPIO::channel(uint16_t pin) {
     if ((pin >= BOARD_NR_GPIO_PINS)) return NULL;
 
     return  get_channel(pin); // new REVOMINIDigitalSource(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit);
-}
-
-/* Interrupt interface: */
-bool REVOMINIGPIO::attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p, uint8_t mode)
-{
-    if ( (interrupt_num >= BOARD_NR_GPIO_PINS) || !p) return false;
-
-    exti_attach_interrupt((afio_exti_num)(PIN_MAP[interrupt_num].gpio_bit),
-                           gpio_exti_port(PIN_MAP[interrupt_num].gpio_device),
-                           p, exti_out_mode((ExtIntTriggerMode)mode));
-
-    return true;
 }
 
 

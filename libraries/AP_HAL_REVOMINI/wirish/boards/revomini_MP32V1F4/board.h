@@ -67,6 +67,7 @@ void boardInit(void);
 
 #define BOARD_MPU6000_CS_PIN		51
 #define BOARD_MPU6000_DRDY_PIN	10  // PC4
+//#define INVENSENSE_INTERRUPT_PIN	BOARD_MPU6000_DRDY_PIN	
 
 
 #define BOARD_SBUS_INVERTER     6
@@ -133,8 +134,8 @@ void boardInit(void);
 
 
    //                                    name            device   bus  mode         cs_pin                       speed_low       speed_high
-#define BOARD_SPI_DEVICES    { BOARD_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, BOARD_MPU6000_CS_PIN,          SPI_1_125MHZ,   SPI_18MHZ }, \
-                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /* device controls CS */ , SPI_1_125MHZ,   SPI_36MHZ },
+#define BOARD_SPI_DEVICES    { BOARD_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, BOARD_MPU6000_CS_PIN,          SPI_1_125MHZ,   SPI_9MHZ,  true }, \
+                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /* device controls CS */ , SPI_1_125MHZ,   SPI_18MHZ, false },
 //                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /**/ BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
 
 
@@ -164,4 +165,7 @@ void boardInit(void);
     AP_Int8 _motor_layout; \
     AP_Int8 _use_softserial;
     
+    
+#define ERROR_USART _USART1 // main port
+
 #endif

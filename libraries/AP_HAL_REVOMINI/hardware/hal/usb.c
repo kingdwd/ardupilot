@@ -21,8 +21,17 @@ extern uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
 __ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 
 static usb_attr_t *usb_attr;
-static U8 usb_connected;
-static volatile int VCP_DTRHIGH = 0;
+static volatile U8 VCP_DTRHIGH = 0;
+static volatile U8 VCP_RTSHIGH = 0;
+
+enum reset_state_t {
+    DTR_UNSET,
+    DTR_HIGH,
+    DTR_NEGEDGE,
+    DTR_LOW
+};
+
+static enum reset_state_t reset_state = DTR_UNSET;
 
 static const U16 rxfifo_size = USB_RXFIFO_SIZE;
 static const U16 txfifo_size = USB_TXFIFO_SIZE;
@@ -40,6 +49,7 @@ static U8 preempt_prio, sub_prio;
 static U8 usb_ready;
 
 static U8 UsbTXBlock = 1;
+
 
 LINE_CODING linecoding =
   {
@@ -65,7 +75,7 @@ static U16 VCP_Ctrl     (uint32_t Cmd, uint8_t* Buf, uint32_t Len);
 static U16 VCP_DataTx   (uint8_t* Buf, uint32_t Len);
 static U16 VCP_DataRx   (uint8_t* Buf, uint32_t Len);
 
-CDC_IF_Prop_TypeDef VCP_fops = 
+const CDC_IF_Prop_TypeDef VCP_fops = 
 {
   VCP_Init,
   VCP_DeInit,
@@ -84,6 +94,7 @@ USBD_Usr_cb_TypeDef USR_cb =
   USBD_USR_DeviceConnected,
   USBD_USR_DeviceDisconnected,
 };
+
 
 
 USBD_DEVICE USR_desc =
@@ -146,6 +157,9 @@ __ALIGN_BEGIN U8 USBD_LangIDDesc[USB_SIZ_STRING_LANGID] __ALIGN_END =
 };
 
 
+static U8 usb_connected =0;
+static U8 usb_opened =0;
+
 /* Return the device descriptor */
 U8 * USBD_USR_DeviceDescriptor(U8 speed, U16 *length)
 {
@@ -170,7 +184,7 @@ U8 * USBD_USR_ProductStrDescriptor(U8 speed, U16 *length)
 	else
 		USBD_GetString ((U8 *)USBD_PRODUCT_FS_STRING, USBD_StrDesc, length);
 
-return USBD_StrDesc;
+    return USBD_StrDesc;
 }
 
 /* return the manufacturer string descriptor */
@@ -180,7 +194,7 @@ U8 * USBD_USR_ManufacturerStrDescriptor(U8 speed, U16 *length)
 		USBD_GetString ((U8 *)usb_attr->manufacturer, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
-return USBD_StrDesc;
+    return USBD_StrDesc;
 }
 
 /* return the serial number string descriptor */
@@ -190,7 +204,7 @@ U8 *  USBD_USR_SerialStrDescriptor(U8 speed, U16 *length)
 		USBD_GetString ((U8 *)usb_attr->serial_number, USBD_StrDesc, length);
 	else
 		USBD_GetString ((U8 *)USBD_SERIALNUMBER_FS_STRING, USBD_StrDesc, length);
-return USBD_StrDesc;
+    return USBD_StrDesc;
 }
 
 /* return the configuration string descriptor */
@@ -217,6 +231,7 @@ return USBD_StrDesc;
 void USBD_USR_Init(void)
 {  
     usb_connected = 0;
+    usb_opened = 0;
 }
 
 void USBD_USR_DeviceReset(uint8_t speed )
@@ -234,12 +249,13 @@ void USBD_USR_DeviceReset(uint8_t speed )
 
 void USBD_USR_DeviceConfigured (void)
 {
-	usb_connected = 1;
+    usb_connected = 1;
 }
 
 void USBD_USR_DeviceSuspended(void)
 {
-	usb_connected = 0;
+    usb_connected = 0;
+    usb_opened = 0;
 }
 
 
@@ -258,6 +274,8 @@ void USBD_USR_DeviceConnected (void)
 void USBD_USR_DeviceDisconnected (void)
 {
     usb_connected = 0;
+    usb_opened = 0;
+
 }
 
 /*------------------------- usb_default_attr -------------------------------*/
@@ -284,7 +302,7 @@ int usb_periphcfg(FunctionalState state)
 {
 	if (state == ENABLE) {
 
-		RCC_AHB1PeriphClockCmd( RCC_AHB1Periph_GPIOA , ENABLE);
+		RCC_AHB1PeriphClockCmd( RCC_AHB1Periph_GPIOA , ENABLE); // USB on GPIO_A
 
 		/* Configure USB D-/D+ (DM/DP) pins */
 		GPIO_InitTypeDef GPIO_InitStructure;
@@ -445,20 +463,55 @@ static U16 VCP_Ctrl (U32 Cmd, U8 *Buf, U32 Len)
     break;
 
   case GET_LINE_CODING:
-		Buf[0] = (uint8_t)(linecoding.bitrate);
-		Buf[1] = (uint8_t)(linecoding.bitrate >> 8);
-		Buf[2] = (uint8_t)(linecoding.bitrate >> 16);
-		Buf[3] = (uint8_t)(linecoding.bitrate >> 24);
-		Buf[4] = linecoding.format;
-		Buf[5] = linecoding.paritytype;
-		Buf[6] = linecoding.datatype;
-		break;
+	Buf[0] = (uint8_t)(linecoding.bitrate);
+	Buf[1] = (uint8_t)(linecoding.bitrate >> 8);
+	Buf[2] = (uint8_t)(linecoding.bitrate >> 16);
+	Buf[3] = (uint8_t)(linecoding.bitrate >> 24);
+	Buf[4] = linecoding.format;
+	Buf[5] = linecoding.paritytype;
+	Buf[6] = linecoding.datatype;
+	break;
+
+
+#define USB_CDCACM_CONTROL_LINE_DTR       (0x01)
+#define USB_CDCACM_CONTROL_LINE_RTS       (0x02)
+
 
   case SET_CONTROL_LINE_STATE:
         linecoding.bitrate = (uint32_t)(Buf[0] | (Buf[1] << 8));
-        if(Buf[0] & 1) {
-                VCP_DTRHIGH = 1;
+        
+        VCP_DTRHIGH = (Buf[0] & USB_CDCACM_CONTROL_LINE_DTR);
+        VCP_RTSHIGH = (Buf[0] & USB_CDCACM_CONTROL_LINE_RTS);
+
+#ifdef DEBUG_BUILD
+// { from Arduino32
+// We need to see a negative edge on DTR before we start looking
+    // for the in-band magic reset byte sequence.
+        uint8_t dtr = VCP_DTRHIGH;
+        switch (reset_state) {
+        case DTR_UNSET:
+            reset_state = dtr ? DTR_HIGH : DTR_LOW;
+            break;
+        case DTR_HIGH:
+            reset_state = dtr ? DTR_HIGH : DTR_NEGEDGE;
+            break;
+        case DTR_NEGEDGE:
+            reset_state = dtr ? DTR_HIGH : DTR_LOW;
+            break;
+        case DTR_LOW:
+            reset_state = dtr ? DTR_HIGH : DTR_LOW;
+            break;
         }
+        
+        // as Arduino - reset on DTR negative edge
+        if ((linecoding.bitrate == 1200) && (reset_state == DTR_NEGEDGE)) {
+            //    iwdg_init(IWDG_PRE_4, 10);
+            NVIC_SystemReset();
+            while (1);
+        }
+//}    
+#endif
+        
     break;
 
   case SEND_BREAK:
@@ -468,6 +521,8 @@ static U16 VCP_Ctrl (U32 Cmd, U8 *Buf, U32 Len)
   default:
     break;
   }
+
+     usb_opened = 1; // set active state only on VCP opening
 
   return USBD_OK;
 }
@@ -500,8 +555,8 @@ unsigned VCP_PutContig(void const* buff, unsigned len)
         unsigned avail = VCP_SpaceAvailContig();
         unsigned sz = MIN_(avail, len);
         if (sz) {
-                memcpy(VCP_SpacePtr(), buff, sz);
-                VCP_MarkWritten(sz);
+            memcpy(VCP_SpacePtr(), buff, sz);
+            VCP_MarkWritten(sz);
         }
         return sz;
 }
@@ -577,6 +632,20 @@ unsigned VCP_DataAvailContig(void)
 
 static U16 VCP_DataRx(U8 *buffer, U32 nbytes)
 {
+#ifdef DEBUG_BUILD
+        if(VCP_DTRHIGH) {
+            if(nbytes >= 4) {
+                if(buffer[0] == '1' && buffer[1] == 'E' && buffer[2] == 'A' && buffer[3] == 'F') {
+                        nbytes = 0;
+                        if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU on this reset
+                            board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
+                        
+                        NVIC_SystemReset();
+                }
+            }
+        }
+        VCP_DTRHIGH =0;
+#endif
         unsigned sz = VCP_GetContig(buffer, nbytes);
         if (sz && (nbytes -= sz))
                 sz += VCP_GetContig((uint8_t*)buffer + sz, nbytes);
@@ -705,6 +774,10 @@ uint32_t usb_data_available(void){
     return VCP_DataAvail(); 
 }
 
+bool usb_get_dtr(){
+    return VCP_DTRHIGH;
+}
+
 void usb_reset_rx(){  
       rb_reset(rxfifo); 
 }
@@ -722,3 +795,6 @@ void VCP_SetUSBTxBlocking(uint8_t Mode) {
     UsbTXBlock = Mode; 
 }
 //----------------------------------------------------------------------------
+
+uint8_t is_usb_opened() { return usb_opened; }
+void reset_usb_opened() { usb_opened=0; }

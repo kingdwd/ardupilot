@@ -88,9 +88,8 @@ typedef enum spi_interrupt {
  * @param dev Device to enable
  */
  
-inline void spi_peripheral_enable(const spi_dev *dev);
 
-inline void spi_peripheral_enable(const spi_dev *dev) {
+static inline void spi_peripheral_enable(const spi_dev *dev) {
         SPI_Cmd(dev->SPIx, ENABLE);
 }
 
@@ -98,9 +97,8 @@ inline void spi_peripheral_enable(const spi_dev *dev) {
  * @brief Disable a SPI peripheral
  * @param dev Device to disable
  */
-inline void spi_peripheral_disable(const spi_dev *dev);
 
-inline void spi_peripheral_disable(const spi_dev *dev) {
+static inline void spi_peripheral_disable(const spi_dev *dev) {
         SPI_Cmd(dev->SPIx, DISABLE);
 }
 

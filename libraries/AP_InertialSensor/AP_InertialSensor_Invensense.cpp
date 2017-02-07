@@ -21,7 +21,10 @@
 #include <utility>
 #include <stdio.h>
 
+#pragma GCC push_options
+#pragma GCC optimize ("O2")
 #include <AP_HAL/AP_HAL.h>
+#pragma GCC pop_options
 
 #include "AP_InertialSensor_Invensense.h"
 
@@ -373,10 +376,10 @@ void AP_InertialSensor_Invensense::_fifo_reset()
 
 bool AP_InertialSensor_Invensense::_has_auxiliary_bus()
 {
-#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI
+#if CONFIG_HAL_BOARD != HAL_BOARD_REVOMINI 
     return _dev->bus_type() != AP_HAL::Device::BUS_TYPE_I2C;
 #else 
-    return false;
+    return false; // сбивает с мысли. зачем проверять если ее там ТОЧНО НЕТ
 #endif
 }
 
@@ -472,8 +475,12 @@ void AP_InertialSensor_Invensense::start()
         AP_HAL::panic("Invensense: Unable to allocate FIFO buffer");
     }
 
+#ifdef INVENSENSE_INTERRUPT_PIN
+    REVOMINI::REVOMINIScheduler::register_IMU_handler(FUNCTOR_BIND_MEMBER(&AP_InertialSensor_Invensense::_int_handler, void));
+#else
     // start the timer process to read samples
     _dev->register_periodic_callback(1000, FUNCTOR_BIND_MEMBER(&AP_InertialSensor_Invensense::_poll_data, bool));
+#endif
 }
 
 
@@ -529,10 +536,17 @@ bool AP_InertialSensor_Invensense::_data_ready()
 /*
  * Timer process to poll for new data from the Invensense. Called from bus thread with semaphore held
  */
+#ifdef INVENSENSE_INTERRUPT_PIN
+void AP_InertialSensor_Invensense::_int_handler()
+{
+    _read_fifo();
+}
+#else
 bool AP_InertialSensor_Invensense::_poll_data()
 {
     return _read_fifo();
 }
+#endif
 
 bool AP_InertialSensor_Invensense::_accumulate(uint8_t *samples, uint8_t n_samples)
 {

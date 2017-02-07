@@ -34,6 +34,7 @@ based on:
 #include "boards.h"
 #include "systick.h"
 #include "gpio_hal.h"
+#include "exti.h"
 #include "timer.h"
 #include "adc.h"
 #include <usb.h>
@@ -111,6 +112,8 @@ inline static void setupCCM(){
 inline static void setupNVIC() {
     /* 4 bit preemption,  0 bit subpriority */
     NVIC_PriorityGroupConfig( NVIC_PriorityGroup_4);
+    
+    exti_init();
 }
 
 //#define BOOT_RTC_REG            (_IO uint32_t *)(RTC_BASE + 0x50)
@@ -127,7 +130,7 @@ inline void goDFU(){            // Reboot to BootROM - to DFU mode
 }
 */
 
-void board_set_rtc_signature(uint32_t sig)
+void board_set_rtc_register(uint32_t sig, uint16_t reg)
 {
 
         RCC->APB1ENR |= RCC_APB1ENR_PWREN;
@@ -140,7 +143,7 @@ void board_set_rtc_signature(uint32_t sig)
 //        RTC_WriteProtectionCmd(DISABLE);
         for(volatile int i=0; i<50; i++);
         
-        RTC_WriteBackupRegister(0, sig);
+        RTC_WriteBackupRegister(reg, sig);
 
         PWR_BackupAccessCmd(DISABLE);
 
@@ -150,13 +153,13 @@ void board_set_rtc_signature(uint32_t sig)
 }
 
 
-uint32_t board_get_rtc_signature()
+uint32_t board_get_rtc_register(uint16_t reg)
 {
         // enable the backup registers.
         PWR->CR   |= PWR_CR_DBP;
         RCC->BDCR |= RCC_BDCR_RTCEN;
 
-        uint32_t ret = RTC_ReadBackupRegister(0);
+        uint32_t ret = RTC_ReadBackupRegister(reg);
 
         // disable the backup registers
 //        RCC->BDCR &= RCC_BDCR_RTCEN;
@@ -172,8 +175,8 @@ void INLINE init(void) {
     setupCCM(); // needs because stack in CCM
     
 
-    if(board_get_rtc_signature() == DFU_RTC_SIGNATURE) {
-        board_set_rtc_signature(0);
+    if(board_get_rtc_register(RTC_SIGNATURE_REG) == DFU_RTC_SIGNATURE) {
+        board_set_rtc_register(0, RTC_SIGNATURE_REG);
         goDFU();
     }
 
@@ -185,6 +188,7 @@ void INLINE init(void) {
     SystemCoreClockUpdate();
 
     enableFPU();
+    exti_init();
     setupNVIC();
     systick_init(SYSTICK_RELOAD_VAL);
 

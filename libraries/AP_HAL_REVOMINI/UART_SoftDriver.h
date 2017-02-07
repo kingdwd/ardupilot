@@ -46,6 +46,7 @@ in case of RevoMini we have pins
 
 */
 
+#if defined(BOARD_SOFTSERIAL_RX) && defined(BOARD_SOFTSERIAL_TX)
 
 #ifndef __AP_HAL_REVOMINI_SERIALDRIVER_H__
 #define __AP_HAL_REVOMINI_SERIALDRIVER_H__
@@ -166,3 +167,4 @@ private:
 };
 
 #endif
+#endif // defined(BOARD_SOFTSERIAL_RX) && defined(BOARD_SOFTSERIAL_TX)

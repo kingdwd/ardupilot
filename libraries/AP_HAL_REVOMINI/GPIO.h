@@ -5,7 +5,7 @@
 #include <wirish.h>
 #include <AP_HAL/AP_HAL.h>
 #include "AP_HAL_REVOMINI_Namespace.h"
-
+#include <exti.h>
 
 #ifndef HIGH
  #define HIGH 0x1
@@ -139,7 +139,10 @@ public:
     AP_HAL::DigitalSource* channel(uint16_t n);
 
     /* Interrupt interface: */
-    bool    attach_interrupt(uint8_t interrupt_num, AP_HAL::Proc p, uint8_t mode);
+    static bool    _attach_interrupt(uint8_t pin, AP_HAL::Proc p, uint8_t mode, uint8_t priority);
+    inline bool    attach_interrupt(uint8_t pin, AP_HAL::Proc p, uint8_t mode) {  return _attach_interrupt(pin, p, mode, 5);   }
+    void           detach_interrupt(uint8_t pin);
+    static inline void    enable_interrupt(uint8_t pin, bool e) { exti_enable_interrupt((afio_exti_num)(PIN_MAP[pin].gpio_bit), e); }
 
     /* return true if USB cable is connected */
     inline bool    usb_connected(void) override {

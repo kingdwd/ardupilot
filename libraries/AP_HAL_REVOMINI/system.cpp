@@ -33,11 +33,12 @@ void panic(const char *errormsg, ...)
 
 
     if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
-        board_set_rtc_signature(DFU_RTC_SIGNATURE);
+        board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
 
 //    for(;;);
+    error_throb(0);
 
-
+/*
     int16_t  slope   = 1;
     uint16_t CC      = 0x0000;
     uint16_t TOP_CNT = 0x0200;
@@ -45,7 +46,7 @@ void panic(const char *errormsg, ...)
     uint8_t n;
 
 
-    /* Error fade. */
+    // Error fade. 
     while (1) {
         if (CC == TOP_CNT)  {
             slope = -1;
@@ -65,7 +66,8 @@ void panic(const char *errormsg, ...)
         }
         gpio_write_bit(PIN_MAP[HAL_GPIO_A_LED_PIN].gpio_device, PIN_MAP[HAL_GPIO_A_LED_PIN].gpio_bit, n);
         i++;
-    }
+    } */
+
 }
 
 uint32_t millis()

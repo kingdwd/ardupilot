@@ -26,7 +26,7 @@ PWM input is not supported - this is general trend
 
 OpLink port
 
-DSM satellite can be connected to Oplink port (hardware Serial5) or to PPM input (pin 3 of input port) via Software Serial (DSM still not tested yet)
+DSM satellite can be connected to Oplink port (hardware Serial5) or to PPM inputs (pins 3&4 of input port) via Software Serial
 
 Support for binding of DSM satellite requires some additional hardware - managed stabilizer 3.3 volts. 
 So it will be best to use satellites with Bind button.

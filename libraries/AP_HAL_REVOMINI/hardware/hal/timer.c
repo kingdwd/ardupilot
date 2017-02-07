@@ -99,8 +99,7 @@ const timer_dev timer4 = {
     .n_handlers   = NR_GEN_HANDLERS,
     .bus          = 0,
     .id           = 4,
-};
-/** Timer 4 device (general-purpose) */
+};/** Timer 4 device (general-purpose) */
 
 TimerHandler tim5_handlers[NR_GEN_HANDLERS] IN_CCM;
 const timer_dev timer5 = {
@@ -112,8 +111,7 @@ const timer_dev timer5 = {
     .n_handlers   = NR_GEN_HANDLERS,
     .bus          = 0,
     .id           = 5,
-};
-/** Timer 5 device (general-purpose) */
+};/** Timer 5 device (general-purpose) */
 
 TimerHandler tim6_handlers[NR_BAS_HANDLERS] IN_CCM;
 const timer_dev timer6 = {
@@ -125,8 +123,7 @@ const timer_dev timer6 = {
     .n_handlers   = NR_BAS_HANDLERS,
     .bus          = 0,
     .id           = 6,
-};
-/** Timer 6 device (basic) */
+};/** Timer 6 device (basic) */
 
 TimerHandler tim7_handlers[NR_BAS_HANDLERS] IN_CCM;
 const timer_dev timer7 = {
@@ -138,8 +135,7 @@ const timer_dev timer7 = {
     .n_handlers   = NR_BAS_HANDLERS,
     .bus          = 0,
     .id           = 7,
-};
-/** Timer 7 device (basic) */
+};/** Timer 7 device (basic) */
 
 TimerHandler tim8_handlers[NR_ADV_HANDLERS] IN_CCM;
 const timer_dev timer8 = {

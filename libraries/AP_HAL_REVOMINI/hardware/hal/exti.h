@@ -8,6 +8,9 @@
   extern "C" {
 #endif
  
+ 
+void exti_init();
+
 /**
  * @brief Register a handler to run upon external interrupt.
  *
@@ -29,6 +32,12 @@ void exti_attach_interrupt(afio_exti_num num,
                            voidFuncPtr handler,
                            exti_trigger_mode mode);
 
+
+void exti_attach_interrupt_pri(afio_exti_num num,
+                           afio_exti_port port,
+                           voidFuncPtr handler,
+                           exti_trigger_mode mode,
+                           uint8_t priority);
 /**
  * @brief Unregister an external interrupt handler
  * @param num Number of the external interrupt line to disable.
@@ -36,6 +45,8 @@ void exti_attach_interrupt(afio_exti_num num,
  */
 void exti_detach_interrupt(afio_exti_num num);
 
+
+void exti_enable_interrupt(afio_exti_num num, bool e);
 
 /**
  * Re-enable interrupts.

@@ -25,6 +25,7 @@ cppSRCS_$(d) += $(WIR)/boards.cpp
 
 sSRCS_$(d)   := 
 sSRCS_$(d)   += $(WIR)/boards/$(BOARD)/startup.S
+sSRCS_$(d)   += $(WIR)/boards/$(BOARD)/exc.S
 
 
 cFILES_$(d)   := $(cSRCS_$(d):%=$(d)/%)

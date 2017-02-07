@@ -1,6 +1,7 @@
 #include <systick.h>
 #include <hal.h>
 #include <timer.h>
+#include "usart.h"
 #include <wirish.h>
 
 
@@ -49,7 +50,7 @@ void SysTick_Handler(void)
 
 // blinking on case of Faults
 
-static void trobe(){
+void __attribute__((noreturn)) error_throb(uint32_t num){
     int16_t  slope   = 1;
     uint16_t CC      = 0x0000;
     uint16_t TOP_CNT = 0x0200;
@@ -57,6 +58,9 @@ static void trobe(){
     uint8_t n;
 
     const int HAL_GPIO_C_LED_PIN=105;
+    const int HAL_GPIO_A_LED_PIN=36;
+    
+    uint8_t pin= (num==0)? HAL_GPIO_A_LED_PIN : HAL_GPIO_C_LED_PIN;
 
     /* Error fade. */
     while (1) {
@@ -76,7 +80,7 @@ static void trobe(){
         } else {
             n=0;
         }
-        gpio_write_bit(PIN_MAP[HAL_GPIO_C_LED_PIN].gpio_device, PIN_MAP[HAL_GPIO_C_LED_PIN].gpio_bit, n);
+        gpio_write_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, n);
 
         volatile int j =10;
         while(--j);
@@ -87,9 +91,11 @@ static void trobe(){
 }
 
 
-#define LED_GRN (*((int32_t *) 0x42408294)) // PB5
-#define LED_YLW (*((int32_t *) 0x42408298)) // PB6 // Not included
-#define LED_RED (*((int32_t *) 0x42408290)) // PB4
+#if 0 // old exception code
+
+//#define LED_GRN (*((int32_t *) 0x42408294)) // PB5
+//#define LED_YLW (*((int32_t *) 0x42408298)) // PB6 // Not included
+//#define LED_RED (*((int32_t *) 0x42408290)) // PB4
 
 
 void HardFault_Handler(void)
@@ -119,9 +125,9 @@ r0 <- SP
     LED_GRN = 1;
 
     if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
-            board_set_rtc_signature(DFU_RTC_SIGNATURE);
+            board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
 
-    trobe();
+    error_throb();
 }
 /**
   * @brief  This function handles Memory Manage exception.
@@ -137,10 +143,9 @@ void MemManage_Handler(void)
     LED_RED = 1;
 
     if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
-            board_set_rtc_signature(DFU_RTC_SIGNATURE);
+            board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
             
-    trobe();
-
+    error_throb();
 }
 
 /**
@@ -157,9 +162,9 @@ void BusFault_Handler(void)
     LED_RED = 0;
 
     if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
-            board_set_rtc_signature(DFU_RTC_SIGNATURE);
+            board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
 
-    trobe();
+    error_throb();
 }
 
 /**
@@ -176,11 +181,44 @@ void UsageFault_Handler(void)
     LED_RED = 1;
 
     if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
-        board_set_rtc_signature(DFU_RTC_SIGNATURE);
+        board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
 
-    trobe();
+    error_throb();
 }
 
+#else // new common exception code
+
+void __attribute__((noreturn)) __error(uint32_t pc, uint32_t num)
+{
+        /* Turn off peripheral interrupts */
+    __disable_irq();
+
+    timer_disable_all();
+
+    if(is_bare_metal())  // bare metal build without bootloader should reboot to DFU after any fault
+        board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
+
+
+    /* Turn the USB interrupt back on so the bootloader keeps on functioning */
+    NVIC_EnableIRQ(OTG_HS_EP1_OUT_IRQn);
+    NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+    NVIC_EnableIRQ(OTG_HS_EP1_IN_IRQn);
+    NVIC_EnableIRQ(OTG_HS_IRQn);
+    NVIC_EnableIRQ(OTG_FS_IRQn);
+
+    __enable_irq();
+
+#ifdef ERROR_USART
+    usart_putstr(ERROR_USART, "\r\nexception: ");
+    usart_putudec(ERROR_USART, num);
+    usart_putc(ERROR_USART, '\n');
+    usart_putc(ERROR_USART, '\r');
+#endif
+
+    error_throb(num);
+}
+
+#endif
 
 uint32_t systick_micros(void)
 {

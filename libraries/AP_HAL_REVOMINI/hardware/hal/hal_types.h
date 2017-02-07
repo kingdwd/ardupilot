@@ -2,6 +2,7 @@
 #define _HAL_TYPES_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 
 typedef void (*voidFuncPtr)(void);

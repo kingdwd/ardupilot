@@ -62,6 +62,7 @@ struct SPIDesc {
     const int16_t cs_pin;
     const SPIFrequency lowspeed;
     const SPIFrequency highspeed;
+    const bool  soft;
 };
 
 
@@ -134,13 +135,14 @@ protected:
     bool _initialized;
     void init(void);
 
-    inline void _cs_assert(){ spi_set_speed(_desc.dev, determine_baud_rate(_speed)); if(_cs) _cs->write(0); delay_ns100(1); } // Select device and wait a little
-    inline void _cs_release(){  delay_ns100(5);                                      if(_cs) _cs->write(1); } // Deselect device, time from http://datasheetspdf.com/mobile/735133/MPU-6000.html page 19
+    inline void _cs_assert(){                   if(_cs) _cs->write(0); delay_ns100(1); } // Select device and wait a little
+    inline void _cs_release(){  delay_ns100(5); if(_cs) _cs->write(1); } // Deselect device, time from http://datasheetspdf.com/mobile/735133/MPU-6000.html page 19
 
     const spi_pins* dev_to_spi_pins(const spi_dev *dev);
 
-    spi_baud_rate determine_baud_rate(SPIFrequency freq);
+    static spi_baud_rate determine_baud_rate(SPIFrequency freq);
 
+    uint8_t _transfer_s(uint8_t bt);
     uint8_t _transfer(uint8_t data);
     
     static bool bus_busy;

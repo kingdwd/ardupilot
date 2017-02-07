@@ -8,12 +8,13 @@
 #include <AP_HAL/AP_HAL.h>
 #pragma GCC pop_options
 
-#include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
+//#include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
 
 #include "AP_HAL_REVOMINI_Namespace.h"
 //#include "HAL_REVOMINI_Class.h"
 
 #include "Semaphores.h"
+#include "GPIO.h"
 
 #include <delay.h>
 #include <systick.h>
@@ -33,9 +34,20 @@
 #define MAIN_STACK_SIZE  16384
 #define STACK_MAX  65535
 
+
+union Revo_handler { // кровь кишки ассемблер :) преобразование функторов в унифицированный вид
+    voidFuncPtr vp;
+    AP_HAL::MemberProc mp;  // это должно быть доступно в С а не только С++ поэтому мы не можем объявить поддержку функторов явно, и вынуждены передавать
+    uint64_t h; // treat as handle             <-- как 64-битное число
+    uint32_t w[2]; // words, to check. если функтор то старшее - адрес флеша, младшее - адрес в RAM. 
+    //                                  Если ссылка на функцию то младшее - адрес флеша, старше 0
+};
+
 extern "C" {
     extern unsigned _estack; // defined by link script
     extern uint32_t us_ticks;
+
+    void revo_call_handler(Revo_handler h);
 }
 
 #define RAMEND ((size_t)&_estack)
@@ -81,13 +93,19 @@ public:
     void     delay_microseconds_boost(uint16_t us) override { _delay_microseconds_boost(us); }
     
     inline   uint32_t millis() {    return _millis(); }
-    inline   uint32_t micros() {   /* return systick_micros();*/ return _micros(); }
+    inline   uint32_t micros() {    return _micros(); }
     
-    void     register_delay_callback(AP_HAL::Proc, uint16_t min_time_ms);
     void     register_timer_process(AP_HAL::MemberProc proc) { _register_timer_process(proc, 1000); }
+    inline void  suspend_timer_procs(){     _timer_suspended = true; }
+
+    void     register_delay_callback(AP_HAL::Proc, uint16_t min_time_ms);
     void     register_io_process(AP_HAL::MemberProc);
-    void     suspend_timer_procs();
+
+
     void     resume_timer_procs();
+
+    static void register_IMU_handler(AP_HAL::MemberProc cb);
+    static inline void enable_IMU_interrupt(bool e) {   REVOMINIGPIO::enable_interrupt(BOARD_MPU6000_DRDY_PIN, e); }
 
     static inline void     _register_timer_process(AP_HAL::MemberProc proc, uint32_t period) {
         Revo_cb r = { .mp=proc };
@@ -97,7 +115,7 @@ public:
 
     inline bool in_timerprocess() {   return _in_timer_proc; }
 
-    void     register_timer_failsafe(AP_HAL::Proc, uint32_t period_us);
+    void     register_timer_failsafe(AP_HAL::Proc failsafe, uint32_t period_us) {   /* XXX Assert period_us == 1000 */  _failsafe = failsafe; }
 
     void     system_initialized();
 
@@ -258,6 +276,14 @@ private:
     static uint8_t    _num_timers;
 
     static void _run_timers(void);
+
+    static AP_HAL::MemberProc IMU_callback;
+    static void _IMU_int_handler();
+#ifdef SHED_PROF
+    static uint32_t _IMU_maxtime;    // max exec time
+    static uint32_t _IMU_count;     // number of calls
+    static uint64_t _IMU_fulltime;  // full consumed time to calc mean
+#endif
 
     void _print_stats();
     void stats_proc(void);

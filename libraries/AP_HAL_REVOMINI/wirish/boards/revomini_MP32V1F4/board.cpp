@@ -2,6 +2,7 @@
 #define BOARD_STM32V1F4
 
 #include "board.h"
+#include "hal.h"
 #include "hal_types.h"
 #include "wirish_types.h"
 #include "gpio_hal.h"
@@ -45,7 +46,7 @@ extern const stm32_pin_info PIN_MAP[BOARD_NR_GPIO_PINS] = {
     {&gpioc,   NULL, NULL, 13, 0, ADCx}, /* D19/PC13 9  NOT CONNECTED */
     {&gpioc,   NULL, NULL, 14, 0, ADCx}, /* D20/PC14 20 NOT CONNECTED */
     {&gpioc,   NULL, NULL, 15, 0, ADCx}, /* D21/PC15 1  NOT CONNECTED */
-    {&gpioa, &timer1,NULL,  8, 1, ADCx}, /* D22/PA8  2 */
+    {&gpioa, &timer1,NULL,  8, 1, ADCx}, /* D22/PA8  2 Volt/Sonar double */
     {&gpioa, &timer1,NULL,  9, 2, ADCx}, /* D23/PA9  3 USART1_TX */
     {&gpioa, &timer1,NULL, 10, 3, ADCx}, /* D24/PA10 4 USART1_RX */
     {&gpiob,   NULL, NULL,  9, 4, ADCx}, /* D25/PB9  5 I2C1_SDA */
@@ -267,14 +268,13 @@ void boardInit(void) {
     gpio_set_mode( PIN_MAP[BOARD_SBUS_INVERTER].gpio_device, PIN_MAP[BOARD_SBUS_INVERTER].gpio_bit, GPIO_OUTPUT_PP);
     gpio_write_bit(PIN_MAP[BOARD_SBUS_INVERTER].gpio_device, PIN_MAP[BOARD_SBUS_INVERTER].gpio_bit, 0); // not inverted
 
-
-
+#ifdef DEBUG_BUILD
 //*///    enable clock in sleep for debugging
     DBGMCU->CR |= DBGMCU_STANDBY | DBGMCU_STOP | DBGMCU_SLEEP;
     DBGMCU->APB1FZ |= DBGMCU_TIM5_STOP | DBGMCU_TIM7_STOP;  // stop internal timers
     DBGMCU->APB2FZ |= DBGMCU_TIM11_STOP;
 //*///
-
+#endif
 }
 
 

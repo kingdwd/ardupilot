@@ -71,9 +71,6 @@ void i2c_lowLevel_deinit(const i2c_dev *dev){
     /* I2C DeInit */
     I2C_DeInit(dev->I2Cx);
 
-    /*!< I2C Periph clock disable */
-//    RCC_APB1PeriphClockCmd(dev->clk, DISABLE); @NG never turn off clocks
-
     /*!< GPIO configuration */
     /*!< Configure I2C pins: SCL */
     GPIO_InitStructure.GPIO_Pin = BIT(dev->scl_pin);

@@ -68,6 +68,7 @@ bool PPM_parser::_process_ppmsum_pulse(uint16_t value)
     } else if(value > 700 && value < 2300) {
         if (channel_ctr < REVOMINI_RC_INPUT_NUM_CHANNELS) {
     	    last_signal =  systick_uptime();
+    	    if(val[channel_ctr] != value) last_change = last_signal;
             val[channel_ctr] = value;
 
             channel_ctr++;
@@ -182,6 +183,7 @@ void PPM_parser::_process_sbus_pulse(uint16_t width_s0, uint16_t width_s1)
 //hal.console->printf(" OK");
 
             for (i=0; i<num_values; i++) {
+                if(val[i] != values[i]) last_change = systick_uptime();
                 val[i] = values[i];
             }
             valid_channels = num_values;
@@ -273,6 +275,7 @@ void PPM_parser::_process_dsm_pulse(uint16_t width_s0, uint16_t width_s1)
                 _rc_mode = BOARD_RC_DSM; // lock input mode, DSM has a checksum so false positive is unreal
 
                 for (i=0; i<num_values; i++) {
+                    if(val[i] != values[i]) last_change = systick_uptime();
                     val[i] = values[i];
                 }
                 valid_channels = num_values;

@@ -25,7 +25,9 @@
 #include "dma.h"
 
 
-#define ISR_PROF
+#define DEBUG_BUILD 1
+
+//#define ISR_PROF
 
 
 #define OK	1
@@ -41,10 +43,6 @@
  * FIXME this has no business being here
  */
 
-//#define USER_ADDR_ROM 0x08005000
-//#define USER_ADDR_RAM 0x20000C00
-//#define STACK_TOP     0x20000800
-
 extern void clock_gettime(uint32_t a1, void *a2);
 
 
@@ -53,19 +51,12 @@ extern void clock_gettime(uint32_t a1, void *a2);
     extern uint64_t isr_time;
 #endif
 
-/*
-union Revo_cb { // кровь кишки ассемблер :) преобразование функторов в унифицированный вид
-    AP_HAL::MemberProc mp;
-    AP_HAL::Device::PeriodicCb pcb;
-    uint64_t h; // treat as handle
-    uint32_t w[2]; // words, to check
-};
-*/
 
-union Revo_handler { // кровь кишки ассемблер :) преобразование функторов в унифицированный вид
+union Revo_hal_handler { // кровь кишки ассемблер :) преобразование функторов в унифицированный вид
     voidFuncPtr vp;
-    uint64_t h;    // treat as handle
-    uint32_t w[2]; // words, to check
+//  AP_HAL::MemberProc mp;          это С а не С++ поэтому мы не можем объявить поддержку функторов явно, и вынуждены передавать
+    uint64_t h; // treat as handle             <-- как 64-битное число
+    uint32_t w[2]; // words, to check. если функтор то старшее - адрес флеша, младшее - адрес в RAM. Если ссылка на функцию то младшее - адрес флеша, старшее 0
 };
 
 

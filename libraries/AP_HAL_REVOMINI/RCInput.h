@@ -13,6 +13,13 @@
 #define REVOMINI_RC_INPUT_MIN_CHANNELS 4
 #define REVOMINI_RC_INPUT_NUM_CHANNELS 20
 
+
+#ifndef BOARD_SPEKTRUM_RX_PIN
+ #ifdef BOARD_DSM_USART
+    #define BOARD_SPEKTRUM_RX_PIN (BOARD_DSM_USART.rx_pin)
+ #endif
+#endif
+
 enum BOARD_RC_MODE {
     BOARD_RC_NONE=0,
     BOARD_RC_SBUS,
@@ -39,6 +46,7 @@ public:
         , _was_ppm(false)
         , _was_dsm(false)
         , _rc_mode(BOARD_RC_NONE)
+        , last_change(0)
      {}
 
     void init(uint8_t ch);
@@ -46,6 +54,7 @@ public:
     volatile uint64_t last_signal;
     volatile uint16_t val[REVOMINI_RC_INPUT_NUM_CHANNELS];
     volatile uint8_t valid_channels;
+    volatile uint64_t last_change;
 
 protected:
     void parse_pulses(void);
@@ -143,11 +152,12 @@ private:
     static uint16_t _override[8];
     static bool _override_valid;
     
+#ifdef BOARD_SPEKTRUM_RX_PIN
     static REVOMINIUARTDriver uartSDriver; 
     static volatile uint64_t _dsm_last_signal;
     static volatile uint16_t _dsm_val[REVOMINI_RC_INPUT_NUM_CHANNELS];
     static volatile uint8_t  _dsm_channels;
-
+    static uint64_t last_dsm_change;
 
     static void add_dsm_uart_input(); // add some DSM input bytes, for RCInput over a serial port
     
@@ -156,8 +166,9 @@ private:
         uint8_t partial_frame_count;
         uint64_t last_input_ms;
     } dsm;
-    
-    static void dsm_bind(uint16_t cmd, int pulses);
+
+    static void _rc_bind(uint16_t dsmMode);    
+#endif
 
     static enum BOARD_LAST_INPUT  _last_read_from;
     

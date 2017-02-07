@@ -38,7 +38,7 @@
  * Devices
  */
 
-static DMA_Handler dma1_handlers[8];
+static DMA_Handler dma1_handlers[8] IN_CCM;
 
 static const dma_dev dma1 = {
     .regs     = (dma_reg_map *)DMA1_BASE,
@@ -59,7 +59,7 @@ static const dma_dev dma1 = {
 const dma_dev * const _DMA1 = &dma1;
 
 
-static DMA_Handler dma2_handlers[8];
+static DMA_Handler dma2_handlers[8] IN_CCM;
 
 static const dma_dev dma2 = {
     .regs     = (dma_reg_map *)DMA2_BASE,

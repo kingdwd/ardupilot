@@ -27,6 +27,7 @@ static uint8_t buffer[2][DF_PAGE_SIZE];
 AP_HAL::OwnPtr<AP_HAL::SPIDevice> DataFlash_Revo::_spi = nullptr;
 AP_HAL::Semaphore                *DataFlash_Revo::_spi_sem = nullptr;
 bool                              DataFlash_Revo::log_write_started=false;
+bool                              DataFlash_Revo::flash_died=false;
 
 // Public Methods //////////////////////////////////////////////////////////////
 void DataFlash_Revo::Init()
@@ -61,6 +62,8 @@ void DataFlash_Revo::Init()
 
     DataFlash_Backend::Init();
 
+    flash_died=false;
+
     log_write_started = true;
 
     df_PageSize = DF_PAGE_SIZE;
@@ -71,11 +74,23 @@ void DataFlash_Revo::Init()
 
 }
 
+void DataFlash_Revo::WaitReady() { 
+    if(flash_died) return;
+    
+    uint32_t t = AP_HAL::millis();
+    while(ReadStatus()!=0){
+        if(AP_HAL::millis() - t > 4000) {
+            flash_died = true;
+            return;
+        }
+    }
+}
+
 //  try to take a semaphore safely from both in a timer and outside
 bool DataFlash_Revo::_sem_take(uint8_t timeout)
 {
 
-    if(!_spi_sem) return false;
+    if(!_spi_sem || flash_died) return false;
 
     if (hal.scheduler->in_timerprocess()) {
         return _spi_sem->take_nonblocking();

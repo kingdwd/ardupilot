@@ -120,8 +120,8 @@ extern void boardInit(void);
 #endif
 extern void pre_init(void);
 
-void board_set_rtc_signature(uint32_t sig);
-uint32_t board_get_rtc_signature();
+void board_set_rtc_register(uint32_t sig, uint16_t reg);
+uint32_t board_get_rtc_register(uint16_t reg);
 
 static inline void goDFU();
 
@@ -160,5 +160,22 @@ static inline bool is_bare_metal() {
 // *(uint32_t *)0x40002850 = 0xb007b007;
 #define BOOT_RTC_SIGNATURE      0xb007b007
 #define DFU_RTC_SIGNATURE       0xDEADBEEF
+
+#define DSM_BIND_SIGNATURE      0xD82B14D0 // last nibble for DSM code
+#define DSM_BIND_SIGN_MASK      0xF // mask for last nibble - DSM code
+
+#define RTC_SIGNATURE_REG       0 // register 0 of backup ram
+#define RTC_DSM_BIND_REG        1   
+
+#define digitalPinToPort(P)        ( PIN_MAP[P].gpio_device )
+#define digitalPinToBitMask(P)     ( BIT(PIN_MAP[P].gpio_bit) )
+#define portOutputRegister(port)   ( &(port->regs->ODR) )
+#define portInputRegister(port)    ( &(port->regs->IDR) )
+
+#define portSetRegister(pin)            ( &(PIN_MAP[pin].gpio_device->regs->BSRR) )
+#define portClearRegister(pin)          ( &(PIN_MAP[pin].gpio_device->regs->BRR) )
+
+#define portConfigRegister(pin)         ( &(PIN_MAP[pin].gpio_device->regs->CRL) )
+
 
 #endif

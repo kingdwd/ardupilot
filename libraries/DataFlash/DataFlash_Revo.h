@@ -53,7 +53,7 @@ private:
     void              BufferWrite (uint8_t BufferNum, uint16_t IntPageAdr, uint8_t Data);
     void              BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t wait);
     void              PageToBuffer(uint8_t BufferNum, uint16_t PageAdr);
-    void              WaitReady() { while(ReadStatus()!=0); } 
+    void              WaitReady();
     uint8_t           ReadStatusReg();
     uint16_t          PageSize() { return df_PageSize; }
     void              PageErase (uint16_t PageAdr);
@@ -92,6 +92,8 @@ private:
     void    spi_write(uint8_t b) {       _spi->transfer(&b,1, NULL, 0);  }
     
     void spi_write(int data) { spi_write((uint8_t)data); }
+
+    static bool flash_died;
 
 public:
     DataFlash_Revo(DataFlash_Class &front, DFMessageWriter_DFLogStart *writer) :

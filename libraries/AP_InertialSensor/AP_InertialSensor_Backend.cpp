@@ -102,7 +102,12 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
     delta_coning = delta_coning % delta_angle;
     delta_coning *= 0.5f;
 
+#ifdef INVENSENSE_INTERRUPT_PIN
+    {
+#else
     if (_sem->take(0)) {
+#endif
+
         // integrate delta angle accumulator
         // the angles and coning corrections are accumulated separately in the
         // referenced paper, but in simulation little difference was found between
@@ -119,7 +124,10 @@ void AP_InertialSensor_Backend::_notify_new_gyro_raw_sample(uint8_t instance,
             _imu._gyro_filter[instance].reset();
         }
         _imu._new_gyro_data[instance] = true;
+#ifndef INVENSENSE_INTERRUPT_PIN
         _sem->give();
+#endif
+
     }
 
     DataFlash_Class *dataflash = get_dataflash();
@@ -194,7 +202,12 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
     
     _imu.calc_vibration_and_clipping(instance, accel, dt);
 
+#ifdef INVENSENSE_INTERRUPT_PIN
+    {
+#else
     if (_sem->take(0)) {
+#endif
+
         // delta velocity
         _imu._delta_velocity_acc[instance] += accel * dt;
         _imu._delta_velocity_acc_dt[instance] += dt;
@@ -207,7 +220,9 @@ void AP_InertialSensor_Backend::_notify_new_accel_raw_sample(uint8_t instance,
         _imu.set_accel_peak_hold(instance, _imu._accel_filtered[instance]);
 
         _imu._new_accel_data[instance] = true;
+#ifndef INVENSENSE_INTERRUPT_PIN
         _sem->give();
+#endif
     }
 
     DataFlash_Class *dataflash = get_dataflash();
@@ -280,9 +295,13 @@ void AP_InertialSensor_Backend::_publish_temperature(uint8_t instance, float tem
  */
 void AP_InertialSensor_Backend::update_gyro(uint8_t instance)
 {    
+#ifdef INVENSENSE_INTERRUPT_PIN
+    REVOMINI::REVOMINIScheduler::enable_IMU_interrupt(false);
+#else
     if (!_sem->take(0)) {
         return;
     }
+#endif
 
     if (_imu._new_gyro_data[instance]) {
         _publish_gyro(instance, _imu._gyro_filtered[instance]);
@@ -295,7 +314,11 @@ void AP_InertialSensor_Backend::update_gyro(uint8_t instance)
         _last_gyro_filter_hz[instance] = _gyro_filter_cutoff();
     }
 
+#ifdef INVENSENSE_INTERRUPT_PIN
+    REVOMINI::REVOMINIScheduler::enable_IMU_interrupt(true);
+#else
     _sem->give();
+#endif
 }
 
 /*
@@ -303,9 +326,13 @@ void AP_InertialSensor_Backend::update_gyro(uint8_t instance)
  */
 void AP_InertialSensor_Backend::update_accel(uint8_t instance)
 {    
+#ifdef INVENSENSE_INTERRUPT_PIN
+    REVOMINI::REVOMINIScheduler::enable_IMU_interrupt(false);
+#else
     if (!_sem->take(0)) {
         return;
     }
+#endif
 
     if (_imu._new_accel_data[instance]) {
         _publish_accel(instance, _imu._accel_filtered[instance]);
@@ -318,5 +345,9 @@ void AP_InertialSensor_Backend::update_accel(uint8_t instance)
         _last_accel_filter_hz[instance] = _accel_filter_cutoff();
     }
 
+#ifdef INVENSENSE_INTERRUPT_PIN
+    REVOMINI::REVOMINIScheduler::enable_IMU_interrupt(true);
+#else
     _sem->give();
+#endif
 }

@@ -15,8 +15,11 @@
 #include <assert.h>
 #include <utility>
 
+#pragma GCC push_options
+#pragma GCC optimize ("O2")
 #include <AP_Math/AP_Math.h>
 #include <AP_HAL/AP_HAL.h>
+#pragma GCC pop_options
 
 #include "AP_Compass_AK8963.h"
 #include <AP_InertialSensor/AP_InertialSensor_Invensense.h>

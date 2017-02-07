@@ -65,6 +65,7 @@ static const usart_dev usart3 =
 /** USART3 device */
 const usart_dev * const _USART3 = &usart3;
 
+#if defined( BOARD_USART4_RX_PIN) && defined( BOARD_USART4_TX_PIN)
 static ring_buffer uart4_txrb IN_CCM;
 static ring_buffer uart4_rxrb IN_CCM;
 static usart_state u4state IN_CCM;
@@ -83,7 +84,9 @@ static const usart_dev uart4 = {
     };
 /** UART4 device */
 const usart_dev * const _UART4 = &uart4;
+#endif
 
+#if defined(BOARD_USART5_RX_PIN)
 static ring_buffer uart5_txrb IN_CCM;
 static ring_buffer uart5_rxrb IN_CCM;
 static usart_state u5state IN_CCM;
@@ -102,6 +105,7 @@ static const usart_dev uart5 = {
     };
 /** UART5 device */
 const usart_dev * const _UART5 = &uart5;
+#endif
 
 static ring_buffer usart6_txrb IN_CCM;
 static ring_buffer usart6_rxrb IN_CCM;
@@ -134,14 +138,15 @@ void usart_init(const usart_dev *dev)  {
     /* Check the parameters */
     assert_param(IS_USART_ALL_PERIPH(dev->USARTx));
 
+    // Turn on peripheral clocks
+    if (dev->USARTx == USART1 || dev->USARTx == USART6 )
+	RCC_APB2PeriphClockCmd(dev->clk, ENABLE);       // we must wait some time before access to
+    else
+	RCC_APB1PeriphClockCmd(dev->clk, ENABLE);
+
     rb_init(dev->txrb, USART_TX_BUF_SIZE, dev->state->tx_buf);
     rb_init(dev->rxrb, USART_RX_BUF_SIZE, dev->state->rx_buf);
 
-    // Turn on peripheral clocks
-    if (dev->USARTx == USART1 || dev->USARTx == USART6 )
-	RCC_APB2PeriphClockCmd(dev->clk, ENABLE);
-    else
-	RCC_APB1PeriphClockCmd(dev->clk, ENABLE);
 }
 
 void usart_setup(const usart_dev *dev, uint32_t baudRate, uint16_t wordLength,
@@ -236,8 +241,12 @@ void usart_foreach(void (*fn)(const usart_dev*))
     fn(_USART1);
     //fn(_USART2);
     fn(_USART3);
-    //fn(_UART4);
-    //fn(_UART5);
+#if defined( BOARD_USART4_RX_PIN) && defined( BOARD_USART4_TX_PIN)
+    fn(_UART4);
+#endif
+#if defined( BOARD_USART5_RX_PIN)
+    fn(_UART5);
+#endif
     fn(_USART6);
 }
 
@@ -371,17 +380,21 @@ void USART3_IRQHandler(void)
     usart_tx_irq(_USART3);
 }
 
+#if defined( BOARD_USART4_RX_PIN) && defined( BOARD_USART4_TX_PIN)
 void UART4_IRQHandler(void)
 {
     usart_rx_irq(_UART4);
     usart_tx_irq(_UART4);
 }
+#endif
 
+#if defined( BOARD_USART5_RX_PIN)
 void UART5_IRQHandler(void)
 {
     usart_rx_irq(_UART5);
     usart_tx_irq(_UART5);
 }
+#endif
 
 void USART6_IRQHandler(void)
 {

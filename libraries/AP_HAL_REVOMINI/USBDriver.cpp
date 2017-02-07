@@ -20,7 +20,7 @@
 #include <fcntl.h>
 #include <usb.h>
 #include <gpio_hal.h>
-
+#include "Scheduler.h"
 
 using namespace REVOMINI;
 
@@ -31,7 +31,8 @@ extern void delay(uint32_t ms);
 
 USBDriver::USBDriver(bool usb):
     _usb_present(usb),
-    _initialized(false)
+    _initialized(false),
+    _blocking(false)
 {
 }
 
@@ -47,7 +48,7 @@ void USBDriver::begin(uint32_t baud) {
 /* REVOMINI implementations of Stream virtual methods */
 
 int16_t USBDriver::read() {
-    if(_usb_present){
+    if(_usb_present && is_usb_opened() ){
 	if (usb_data_available() <= 0)
 	    return (-1);
 	return usb_getc();
@@ -58,9 +59,15 @@ int16_t USBDriver::read() {
 /* REVOMINI implementations of Print virtual methods */
 size_t USBDriver::write(uint8_t c) {
 
-    if(_usb_present){
-	usb_putc(c);
-        return 1;
+    if(_usb_present && is_usb_opened()){
+        uint8_t n;
+        if(_blocking){
+            while(!(n=usb_putc(c)) ) ;
+            return n;
+        }else {
+            usb_putc(c);
+            return 1;
+        }
     }
     return 0;
 }
@@ -68,10 +75,24 @@ size_t USBDriver::write(uint8_t c) {
 size_t USBDriver::write(const uint8_t *buffer, size_t size)
 {
     size_t n = 0;
-    while (size--) {
-        n += write(*buffer++);
+    uint32_t t = REVOMINIScheduler::_millis();
+
+    if(_usb_present && is_usb_opened()){
+        while (size) {
+//                n += write(*buffer++);
+            uint8_t k=usb_write(buffer, size);
+            size-=k;
+            n+=k;
+            buffer+=k;
+            
+            if(!_blocking  && (REVOMINIScheduler::_millis() - t > 300) ){
+                reset_usb_opened();
+                return size;
+            }
+        }
     }
     return n;
+
 }
 
 #endif // CONFIG_HAL_BOARD

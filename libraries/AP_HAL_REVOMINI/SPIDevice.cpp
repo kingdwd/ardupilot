@@ -24,7 +24,7 @@
 
 //#pragma GCC pop_options
 
-#define SOFT_SPI 1
+//#define SOFT_SPI 1
 
 
 using namespace REVOMINI;
@@ -157,7 +157,6 @@ spi_baud_rate SPIDevice::determine_baud_rate(SPIFrequency freq)
 
 
 
-#if defined(SOFT_SPI)
 
 #define SCK_H       {sck_port->BSRRL = sck_pin; }
 #define SCK_L       {sck_port->BSRRH = sck_pin; }
@@ -182,70 +181,9 @@ static void dly_spi() {
 };
 
 
-void SPIDevice::init(){
-    if(_cs) {
-        _cs->mode(OUTPUT);
-        _cs_release();    // do not hold the SPI bus initially
-    }
-
-    const spi_pins *pins = dev_to_spi_pins(_desc.dev);
-
-    if (!pins || pins->sck > BOARD_NR_GPIO_PINS || pins->mosi > BOARD_NR_GPIO_PINS || pins->miso > BOARD_NR_GPIO_PINS) {
-        return;
-    }
 
 
-    const gpio_dev *sck_dev  = PIN_MAP[pins->sck].gpio_device;
-          uint8_t   sck_bit  = PIN_MAP[pins->sck].gpio_bit;
-
-    const gpio_dev *mosi_dev = PIN_MAP[pins->mosi].gpio_device;
-          uint8_t   mosi_bit = PIN_MAP[pins->mosi].gpio_bit;
-
-    const gpio_dev *miso_dev = PIN_MAP[pins->miso].gpio_device; 
-          uint8_t   miso_bit = PIN_MAP[pins->miso].gpio_bit;
-
-    gpio_set_mode(sck_dev,  sck_bit,  GPIO_OUTPUT_PP);
-    gpio_set_mode(mosi_dev, mosi_bit, GPIO_OUTPUT_PP);
-    gpio_set_mode(miso_dev, miso_bit, GPIO_INPUT_PU);
-
-    gpio_write_bit(sck_dev,  sck_bit, 1); // passive SCK high
-
-    sck_port = sck_dev->GPIOx;
-    sck_pin  = 1<<sck_bit;
-
-    mosi_port = mosi_dev->GPIOx;
-    mosi_pin  = 1<<mosi_bit;
-
-    miso_port = miso_dev->GPIOx;
-    miso_pin  = 1<<miso_bit;
-}
-
-
-
-
-bool SPIDevice::set_speed(AP_HAL::Device::Speed speed)
-{
-
-    if(!_initialized) {
-        init();
-        _initialized=true;
-    }
-
-    switch (speed) {
-    case AP_HAL::Device::SPEED_HIGH:
-        _speed = _desc.highspeed;
-        break;
-    case AP_HAL::Device::SPEED_LOW:
-    default:
-        _speed = _desc.lowspeed;
-        break;
-    }
-
-    return true;
-}
-
-
-uint8_t SPIDevice::_transfer(uint8_t bt) {
+uint8_t SPIDevice::_transfer_s(uint8_t bt) {
 
     for(int ii = 0; ii < 8; ++ii) {
         if (bt & 0x80) {
@@ -269,93 +207,7 @@ uint8_t SPIDevice::_transfer(uint8_t bt) {
 }
 
 
-bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, uint32_t recv_len){
-    _cs_assert();
-    
-    uint16_t rate;
-
-    switch(_speed) {
-    case SPI_18MHZ:
-    case SPI_9MHZ:
-    case SPI_4_5MHZ:
-	rate = 1;
-	break;
-    case SPI_2_25MHZ:
-	rate = 2;
-	break;
-    case SPI_1_125MHZ:
-	rate = 4; // 400 ns delay
-	break;
-    case SPI_562_500KHZ:
-	rate = 8;
-	break;
-    case SPI_281_250KHZ:
-	rate = 16;
-	break;
-    case SPI_140_625KHZ:
-    default:
-	rate = 32;
-	break;
-    }
-
-    dly_time = rate; 
-
-    if (send != NULL && send_len) {
-        for (uint16_t i = 0; i < send_len; i++) {
-            _transfer(send[i]);
-        }    
-    } 
-    
-    
-    if(recv !=NULL && recv_len) {
-        for (uint16_t i = 0; i < recv_len; i++) {
-            recv[i] = _transfer(0);
-        }
-    }
-
-#if 0
-    spi_trans_array[spi_trans_ptr].dev      = _desc.dev;
-    spi_trans_array[spi_trans_ptr].send_len = send_len;
-    if(send_len)
-      spi_trans_array[spi_trans_ptr].sent = send[0];
-    else spi_trans_array[spi_trans_ptr].sent = 0;
-    if(send_len>1)
-      spi_trans_array[spi_trans_ptr].sent1 = send[1];
-    else spi_trans_array[spi_trans_ptr].sent1 = 0;
-    spi_trans_array[spi_trans_ptr].recv_len = recv_len;
-    if(recv_len)
-      spi_trans_array[spi_trans_ptr].recv0 = recv[0];
-    else spi_trans_array[spi_trans_ptr].recv0 = 0;
-    if(recv_len>1)
-      spi_trans_array[spi_trans_ptr].recv1 = recv[1];
-    else spi_trans_array[spi_trans_ptr].recv1 = 0;
-    
-    spi_trans_ptr++;
-#endif
-
-    _cs_release();
-    return true;    
-
-}
-
-
-bool SPIDevice::transfer_fullduplex(const uint8_t *send, uint8_t *recv, uint32_t len) {
-
-    _cs_assert();
-    if (send != NULL && recv !=NULL && len) {
-        for (uint16_t i = 0; i < len; i++) {
-            recv[i] = _transfer(send[i]);
-        }    
-    } 
-    _cs_release();
-    return true;
-}
-
-
-
-#else
 /////////////// hardware
-
 
 
 void SPIDevice::init(){
@@ -364,23 +216,50 @@ void SPIDevice::init(){
         _cs_release();    // do not hold the SPI bus initially
     }
 
-    spi_init(_desc.dev); // disable device
-
     const spi_pins *pins = dev_to_spi_pins(_desc.dev);
 
     if (!pins || pins->sck > BOARD_NR_GPIO_PINS || pins->mosi > BOARD_NR_GPIO_PINS || pins->miso > BOARD_NR_GPIO_PINS) {
         return;
     }
 
-    spi_gpio_master_cfg(_desc.dev,
-                PIN_MAP[pins->sck].gpio_device, PIN_MAP[pins->sck].gpio_bit,
-                PIN_MAP[pins->miso].gpio_bit,   PIN_MAP[pins->mosi].gpio_bit);
+
+    if(_desc.soft) { //software
+        const gpio_dev *sck_dev  = PIN_MAP[pins->sck].gpio_device;
+              uint8_t   sck_bit  = PIN_MAP[pins->sck].gpio_bit;
+
+        const gpio_dev *mosi_dev = PIN_MAP[pins->mosi].gpio_device;
+              uint8_t   mosi_bit = PIN_MAP[pins->mosi].gpio_bit;
+
+        const gpio_dev *miso_dev = PIN_MAP[pins->miso].gpio_device; 
+              uint8_t   miso_bit = PIN_MAP[pins->miso].gpio_bit;
+
+        gpio_set_mode(sck_dev,  sck_bit,  GPIO_OUTPUT_PP);
+        gpio_set_mode(mosi_dev, mosi_bit, GPIO_OUTPUT_PP);
+        gpio_set_mode(miso_dev, miso_bit, GPIO_INPUT_PU);
+
+        gpio_write_bit(sck_dev,  sck_bit, 1); // passive SCK high
+
+        sck_port = sck_dev->GPIOx;
+        sck_pin  = 1<<sck_bit;
+
+        mosi_port = mosi_dev->GPIOx;
+        mosi_pin  = 1<<mosi_bit;
+
+        miso_port = miso_dev->GPIOx;
+        miso_pin  = 1<<miso_bit;
 
 
-    spi_master_enable(_desc.dev, determine_baud_rate(_desc.lowspeed), _desc.mode, MSBFIRST);
+    } else { /// hardware
+        spi_init(_desc.dev); // disable device
+
+        spi_gpio_master_cfg(_desc.dev,
+                    PIN_MAP[pins->sck].gpio_device, PIN_MAP[pins->sck].gpio_bit,
+                    PIN_MAP[pins->miso].gpio_bit,   PIN_MAP[pins->mosi].gpio_bit);
+
+
+        spi_master_enable(_desc.dev, determine_baud_rate(_desc.lowspeed), _desc.mode, MSBFIRST);         
+    }
 }
-
-
 
 
 bool SPIDevice::set_speed(AP_HAL::Device::Speed speed)
@@ -401,9 +280,6 @@ bool SPIDevice::set_speed(AP_HAL::Device::Speed speed)
         break;
     }
 
-//    spi_master_enable(_desc.dev, determine_baud_rate(_speed), _desc.mode, MSBFIRST);
-    spi_set_speed(_desc.dev, determine_baud_rate(_speed)); //- on cs_assert()
-    
     return true;
 }
 
@@ -429,11 +305,58 @@ bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, 
     if(bus_busy) {
         return false;
     }
+    
+    int ret=0;
 
     bus_busy = true;
     _cs_assert();
 
-    int ret = spimaster_transfer(_desc.dev, send, send_len, recv, recv_len);
+    if(_desc.soft) {
+        uint16_t rate;
+
+        switch(_speed) {
+        case SPI_36MHZ:
+        case SPI_18MHZ:
+        case SPI_9MHZ:
+        case SPI_4_5MHZ:
+            rate = 1;
+            break;
+        case SPI_2_25MHZ:
+            rate = 2;
+	    break;
+        case SPI_1_125MHZ:
+	    rate = 4; // 400 ns delay
+	    break;
+        case SPI_562_500KHZ:
+	    rate = 8;
+	    break;
+        case SPI_281_250KHZ:
+	    rate = 16;
+	    break;
+        case SPI_140_625KHZ:
+        default:
+	    rate = 32;
+	    break;
+        }
+
+        dly_time = rate; 
+
+        if (send != NULL && send_len) {
+            for (uint16_t i = 0; i < send_len; i++) {
+                _transfer_s(send[i]);
+            }    
+        } 
+    
+        if(recv !=NULL && recv_len) {
+            for (uint16_t i = 0; i < recv_len; i++) {
+                recv[i] = _transfer_s(0);
+            }
+        }
+    } else {
+        spi_set_speed(_desc.dev, determine_baud_rate(_speed)); //- on cs_assert()
+
+        ret = spimaster_transfer(_desc.dev, send, send_len, recv, recv_len);
+    }
 
 #if 0
     spi_trans_array[spi_trans_ptr].dev      = _desc.dev;
@@ -466,13 +389,23 @@ bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, 
 bool SPIDevice::transfer_fullduplex(const uint8_t *send, uint8_t *recv, uint32_t len) {
 
     _cs_assert();
-    if (send != NULL && recv !=NULL && len) {
-        for (uint16_t i = 0; i < len; i++) {
-            recv[i] = _transfer(send[i]);
-        }    
-    } 
+
+    if(_desc.soft) {
+        if (send != NULL && recv !=NULL && len) {
+            for (uint16_t i = 0; i < len; i++) {
+                recv[i] = _transfer_s(send[i]);
+            }    
+        } 
+    } else {
+        spi_set_speed(_desc.dev, determine_baud_rate(_speed)); //- on cs_assert()
+
+        if (send != NULL && recv !=NULL && len) {
+            for (uint16_t i = 0; i < len; i++) {
+                recv[i] = _transfer(send[i]);
+            }    
+        } 
+    }
     _cs_release();
     return true;
 }
 
-#endif

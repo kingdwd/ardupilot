@@ -136,7 +136,7 @@ void REVOMINIAnalogSource::setup_read() {
     if (_stop_pin != ANALOG_INPUT_NONE && _stop_pin < BOARD_NR_GPIO_PINS) {
 
         uint8_t pin = REVOMINIGPIO::analogPinToDigital(_stop_pin);
-        gpio_set_mode(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, GPIO_OUTPUT_PP);
+        gpio_set_mode( PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, GPIO_OUTPUT_PP);
         gpio_write_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, 1);
 
     }
@@ -174,7 +174,7 @@ void REVOMINIAnalogSource::stop_read() {
         const adc_dev *dev = _find_device();
 	adc_disable(dev);
         uint8_t pin = REVOMINIGPIO::analogPinToDigital(_stop_pin);
-        gpio_set_mode(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, GPIO_OUTPUT_PP);
+        gpio_set_mode( PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, GPIO_OUTPUT_PP);
         gpio_write_bit(PIN_MAP[pin].gpio_device, PIN_MAP[pin].gpio_bit, 0);
     }
 }

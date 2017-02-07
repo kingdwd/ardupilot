@@ -1,6 +1,7 @@
-
-
 #include "Scheduler.h"
+
+#include <AP_HAL_REVOMINI/AP_HAL_REVOMINI.h>
+
 #include "Semaphores.h"
 #include <timer.h>
 
@@ -47,6 +48,13 @@ revo_timer REVOMINIScheduler::_timers[REVOMINI_SCHEDULER_MAX_SHEDULED_PROCS] IN_
 uint8_t    REVOMINIScheduler::_num_timers = 0;
 
 uint8_t    REVOMINIScheduler::_num_io_proc=0;
+
+AP_HAL::MemberProc REVOMINIScheduler::IMU_callback = 0;
+#ifdef SHED_PROF
+    uint32_t REVOMINIScheduler::_IMU_maxtime=0;    // max exec time
+    uint32_t REVOMINIScheduler::_IMU_count=0;     // number of calls
+    uint64_t REVOMINIScheduler::_IMU_fulltime=0;  // full consumed time to calc mean
+#endif
 
 AP_HAL::Proc REVOMINIScheduler::_delay_cb=NULL;
 uint16_t REVOMINIScheduler::_min_delay_cb_ms=0;
@@ -115,7 +123,7 @@ void REVOMINIScheduler::init()
     
                 // dev    period   freq, kHz
     configTimeBase(TIMER7, period, 2000);       //2MHz 0.5us ticks
-    timer_attach_interrupt(TIMER7, TIMER_UPDATE_INTERRUPT, _timer_isr_event, 11); // low priority
+    timer_attach_interrupt(TIMER7, TIMER_UPDATE_INTERRUPT, _timer_isr_event, 14); // low priority
     timer_resume(TIMER7);
 
 // timer5 - 32-bit general timer, unused for other needs
@@ -207,6 +215,30 @@ void REVOMINIScheduler::_delay_microseconds(uint16_t us)
 }
 
 
+void REVOMINIScheduler::_IMU_int_handler() { 
+    if(IMU_callback) {
+#ifdef SHED_PROF
+        uint32_t t=_micros();
+#endif
+        IMU_callback();
+
+#ifdef SHED_PROF
+        t=_micros() - t;
+        if(t>_IMU_maxtime)
+            _IMU_maxtime = t; // max exec time
+        _IMU_count++;         // number of calls
+        _IMU_fulltime += t;   // full consumed time to calc mean
+#endif
+    }
+}
+
+
+void REVOMINIScheduler::register_IMU_handler(AP_HAL::MemberProc cb) { 
+    IMU_callback = cb; 
+    
+    REVOMINIGPIO::_attach_interrupt(BOARD_MPU6000_DRDY_PIN, _IMU_int_handler, RISING, 11);
+}
+
 void REVOMINIScheduler::register_delay_callback(AP_HAL::Proc proc, uint16_t min_time_ms)
 {
     static bool init_done=false;
@@ -232,14 +264,6 @@ void REVOMINIScheduler::register_io_process(AP_HAL::MemberProc proc)
     }
 }
 
-void REVOMINIScheduler::register_timer_failsafe(AP_HAL::Proc failsafe, uint32_t period_us) {
-    /* XXX Assert period_us == 1000 */
-    _failsafe = failsafe;
-}
-void REVOMINIScheduler::suspend_timer_procs()
-{
-    _timer_suspended = true;
-}
 
 
 void REVOMINIScheduler::resume_timer_procs()
@@ -300,28 +324,6 @@ uint64_t REVOMINIScheduler::_micros64() {
 }
 
 
-// PX4 writes as
-// *(uint32_t *)0x40002850 = 0xb007b007;
-/*
-#define BOOT_RTC_SIGNATURE	0xb007b007
-#define DFU_RTC_SIGNATURE	0xDEADBEEF
-
-void REVOMINIScheduler::board_set_rtc_signature(uint32_t sig)
-{
-        // enable the backup registers.
-        PWR->CR   |= PWR_CR_DBP;
-        RCC->BDCR |= RCC_BDCR_RTCEN;
-
-        RTC_WriteBackupRegister(0, sig);
- 
-        // disable the backup registers
-//        RCC->BDCR &= RCC_BDCR_RTCEN;
-        PWR->CR   &= ~PWR_CR_DBP;
-}
-*/
-
-
-
 void REVOMINIScheduler::system_initialized()
 {
     if (_initialized) {
@@ -329,7 +331,7 @@ void REVOMINIScheduler::system_initialized()
     }
     _initialized = true;
     
-    board_set_rtc_signature(0); // clear bootloader flag after init done
+    board_set_rtc_register(0,RTC_SIGNATURE_REG); // clear bootloader flag after init done
 }
 
 
@@ -340,18 +342,18 @@ void REVOMINIScheduler::reboot(bool hold_in_bootloader) {
 #if 1
         if(is_bare_metal()) { // bare metal build without bootloader
 
-            board_set_rtc_signature(DFU_RTC_SIGNATURE);
+            board_set_rtc_register(DFU_RTC_SIGNATURE, RTC_SIGNATURE_REG);
 
         } else
 #endif
-            board_set_rtc_signature(BOOT_RTC_SIGNATURE);
+            board_set_rtc_register(BOOT_RTC_SIGNATURE, RTC_SIGNATURE_REG);
     }
 
     _delay(100);
 
     NVIC_SystemReset();
 
-    return;
+    _delay(1000);
 }
 
 void REVOMINIScheduler::loop(){    // executes in main thread
@@ -379,13 +381,18 @@ void REVOMINIScheduler::_print_stats(){
         else              shed_eff = shed_eff*(1 - 1/Kf) + eff*(1/Kf);
 
         hal.console->printf("\nScheduler stats:\n  %% of full time: %5.2f  Efficiency %5.3f max loop time %ld \n", (task_time/10.0)/t /* in percent*/ , shed_eff, max_loop_time );
-        hal.console->printf("delay times: in main %5.2f including in semaphore %5.2f  in timer %5.2f in isr %5.2f \nTask times:\n", (delay_time/10.0)/t, (Semaphore::sem_time/10.0)/t,  (delay_int_time/10.0)/t, (isr_time/10.0)/t );
+        hal.console->printf("delay times: in main %5.2f including in semaphore %5.2f  in timer %5.2f in isr %5.2f \n", (delay_time/10.0)/t, (Semaphore::sem_time/10.0)/t,  (delay_int_time/10.0)/t, (isr_time/10.0)/t );
+
+        hal.console->printf("IMU times: mean %5.2f max %5ld\n", (float)_IMU_fulltime/_IMU_count, _IMU_maxtime );
 
         yield();
+
+        hal.console->printf("Task times:\n");
 
         for(int i=0; i< _num_timers; i++) {
             if(_timers[i].proc){    // task not cancelled?
                 hal.console->printf("task 0x%llX tim %8.1f int %5.3f%% tot %6.4f%% mean time %5.1f max time %ld\n", _timers[i].proc, _timers[i].fulltime/1000.0, _timers[i].fulltime*100.0 / task_time, (_timers[i].fulltime / 10.0) / t, (float)_timers[i].fulltime/_timers[i].count, _timers[i].micros );
+                _timers[i].micros = 0; // reset max time
                 yield();
             }
         }
@@ -760,3 +767,27 @@ size_t REVOMINIScheduler::task_stack(){
   return (&marker - s_running->stack);
 }
 
+
+
+////////////////////////////////////
+/*
+union Revo_handler { // кровь кишки ассемблер :) преобразование функторов в унифицированный вид
+    voidFuncPtr vp;
+    AP_HAL::MemberProc mp;          это С а не С++ поэтому мы не можем объявить поддержку функторов явно, и вынуждены передавать
+    uint64_t h; // treat as handle             <-- как 64-битное число
+    uint32_t w[2]; // words, to check. если функтор то старшее - адрес флеша, младшее - адрес в RAM. 
+                                    Если ссылка на функцию то младшее - адрес флеша, старше 0
+};
+*/
+// SRAM1_BASE
+#define ADDRESS_IN_FLASH(a) ((a)>FLASH_BASE && (a)<CCMDATARAM_BASE)
+
+void revo_call_handler(Revo_hal_handler h){
+    Revo_handler h = (Revo_handler)h;
+
+    if(ADDRESS_IN_FLASH(h.w[0]){
+        (h.vp)();
+    } else if(ADDRESS_IN_FLASH(h.w[1]) {
+        (h.mp)();
+    }
+}

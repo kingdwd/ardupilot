@@ -30,7 +30,7 @@ public:
   inline void flush() {  if(_usb_present) usb_reset_rx(); }
   inline bool is_initialized(){ return _initialized; }
 
-  inline  void set_blocking_writes(bool blocking) { }
+  inline  void set_blocking_writes(bool blocking) { _blocking=blocking; }
 
   inline  bool tx_pending() {   return false; }
 
@@ -46,6 +46,7 @@ public:
 private:
     uint8_t _usb_present;
     bool _initialized;
+    bool _blocking;
 };
 
 }

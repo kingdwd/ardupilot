@@ -1,3 +1,5 @@
+#include <AP_HAL_REVOMINI/AP_HAL_REVOMINI_Namespace.h>
+
 #define AP_HAL_BOARD_DRIVER             AP_HAL_REVOMINI
 #define HAL_SERIAL0_BAUD_DEFAULT        115200
 #define CONFIG_HAL_BOARD_SUBTYPE        HAL_BOARD_SUBTYPE_NONE
@@ -12,10 +14,13 @@
 
 #define HAL_BARO_DEFAULT                BOARD_BARO_DEFAULT
 #define HAL_BARO_MS5611_I2C_BUS         BOARD_I2C_BUS_INT
-#define HAL_BARO_MS5611_I2C_BUS_EXT     BOARD_I2C_BUS_EXT  // external baro on soft I2C
 #define HAL_BARO_MS5611_I2C_ADDR        BOARD_BARO_MS5611_I2C_ADDR
 
-#define HAL_BARO_BMP280_BUS             BOARD_I2C_BUS_EXT  // external baro on soft I2C
+#ifdef BOARD_I2C_BUS_EXT
+ #define HAL_BARO_MS5611_I2C_BUS_EXT     BOARD_I2C_BUS_EXT  // external baro on soft I2C
+ #define HAL_BARO_BMP280_BUS             BOARD_I2C_BUS_EXT  // external baro on soft I2C
+#endif
+
 #define HAL_BARO_BMP280_I2C_ADDR        (0x76)
 
 
@@ -31,9 +36,11 @@
 #define HAL_INS_DEFAULT_ROTATION        BOARD_INS_ROTATION
 #define HAL_INS_MPU60x0_NAME            BOARD_INS_MPU60x0_NAME
 
-#define INVENSENSE_DRDY_PIN             BOARD_MPU6000_DRDY_PIN 
+//#define INVENSENSE_DRDY_PIN             BOARD_MPU6000_DRDY_PIN via interrupt
 
+#ifdef BOARD_HMC5883_DRDY_PIN
 #define HMC5883_DRDY_PIN                BOARD_HMC5883_DRDY_PIN
+#endif
 
 #define HAL_DATAFLASH_NAME              BOARD_DATAFLASH_NAME
 

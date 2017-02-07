@@ -27,7 +27,7 @@ static USBDriver USB_Driver(1);                 // ACM
 static REVOMINIUARTDriver uart1Driver(_USART1); // main port
 static REVOMINIUARTDriver uart3Driver(_USART3); // flexi port
 static REVOMINIUARTDriver uart6Driver(_USART6); // pin 7&8(REVO)/5&6(RevoMini) of input port
-#if FRAME_CONFIG == QUAD_FRAME
+#if FRAME_CONFIG == QUAD_FRAME && defined( BOARD_USART4_RX_PIN) && defined( BOARD_USART4_TX_PIN)
 static REVOMINIUARTDriver uart4Driver(_UART4);  // pin 5&6 of servo port
 #endif
 
@@ -82,12 +82,12 @@ HAL_REVOMINI::HAL_REVOMINI() :
         &uart6Driver,  /* uartD - pin 7&8(REVO)/5&6(RevoMini) of input port - for GPS */
         &uart1Driver,  /* uartB - main port  - for telemetry */
         &uart3Driver,  /* uartC - flexi port - for OSD */
-#if FRAME_CONFIG == QUAD_FRAME
+#if FRAME_CONFIG == QUAD_FRAME && defined(BOARD_USART4_RX_PIN)
         &uart4Driver,  /* uartE  - PWM pins 5&6 */
 #else
         NULL,          /* no uartE */
 #endif
-#ifdef USE_SOFTSERIAL
+#if defined(USE_SOFTSERIAL) && defined(BOARD_SOFTSERIAL_TX) && defined(BOARD_SOFTSERIAL_RX)
         &softDriver,   /* uartF */
 #else
         NULL,          /* no uartF */

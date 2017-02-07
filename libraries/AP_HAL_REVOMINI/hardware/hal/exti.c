@@ -31,9 +31,12 @@ static const exti_channel exti_channels[] = {
 
 #define NUM_IRQ (sizeof(exti_channels)/sizeof(exti_channel))
 
-static Handler handlers[NUM_IRQ] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} ;
+static Handler handlers[NUM_IRQ] IN_CCM;
 
-// TODO: сделать вызов INIT и перенести все хандлеры в CCM
+
+void exti_init(){
+    memset(handlers, 0, sizeof(handlers));
+}
 
 
 static inline EXTITrigger_TypeDef get_exti_mode(exti_trigger_mode mode) {
@@ -62,7 +65,6 @@ void exti_attach_interrupt(afio_exti_num num,
 	assert_param(port >= 0 && num <= 4);
 	
 	EXTI_InitTypeDef   EXTI_InitStructure;
-	GPIO_InitTypeDef   GPIO_InitStructure;
 	NVIC_InitTypeDef   NVIC_InitStructure;
   	
 	/* Register the handler */
@@ -73,6 +75,7 @@ void exti_attach_interrupt(afio_exti_num num,
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 
 /*  this is not a job of attachInterrupt
+	GPIO_InitTypeDef   GPIO_InitStructure;
 	gpio_dev *dev = gpio_get_gpio_dev(port);
 	
  
@@ -96,25 +99,63 @@ void exti_attach_interrupt(afio_exti_num num,
 
 	/* Enable and set EXTI Line Interrupt to the lowest priority */
 	NVIC_InitStructure.NVIC_IRQChannel = exti_channels[num].irq_type;
-	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;  // we init NVIC for 4 bit preemption,  0 bit subpriority 
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);  	
 }
+
+void exti_attach_interrupt_pri(afio_exti_num num,
+                           afio_exti_port port,
+                           voidFuncPtr handler,
+                           exti_trigger_mode mode,
+                           uint8_t priority)
+{
+	/* Check the parameters */
+	assert_param(handler);
+	assert_param(IS_EXTI_PIN_SOURCE(num));
+	assert_param(IS_EXTI_PORT_SOURCE(num));
+	assert_param(port >= 0 && num <= 4);
+	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE); // we must wait some time before access to SYSCFG
+  	
+	/* Register the handler */
+	handlers[num] = handler;
+
+	// Enable SYSCFG clock 
+
+	SYSCFG_EXTILineConfig(port, num); // select port as  EXTI interrupt source. SYSCFG not documented in STM docs
+
+	/* Configure EXTI Line */
+	EXTI_InitTypeDef   EXTI_InitStructure;
+	EXTI_InitStructure.EXTI_Line = exti_channels[num].irq_line;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = get_exti_mode(mode);  
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	/* Enable and set EXTI Line Interrupt to the given priority */
+	NVIC_InitTypeDef   NVIC_InitStructure;
+	NVIC_InitStructure.NVIC_IRQChannel = exti_channels[num].irq_type;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = priority;  // we init NVIC for 4 bit preemption,  0 bit subpriority 
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);  	
+}
+
 
 void exti_detach_interrupt(afio_exti_num num)
 {
 	/* Check the parameters */
 	assert_param(IS_EXTI_PORT_SOURCE(num));
 	
-	EXTI_InitTypeDef   EXTI_InitStructure;
-	NVIC_InitTypeDef   NVIC_InitStructure;
-   
+	EXTI_InitTypeDef   EXTI_InitStructure;  
 	EXTI_StructInit(&EXTI_InitStructure);
 	EXTI_InitStructure.EXTI_Line = exti_channels[num].irq_line;
-	EXTI_InitStructure.EXTI_LineCmd = DISABLE;
+//	EXTI_InitStructure.EXTI_LineCmd = DISABLE;
 	EXTI_Init(&EXTI_InitStructure);
 
+	NVIC_InitTypeDef   NVIC_InitStructure;
 	NVIC_InitStructure.NVIC_IRQChannel = exti_channels[num].irq_type;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = DISABLE;
 	NVIC_Init(&NVIC_InitStructure);
@@ -123,6 +164,14 @@ void exti_detach_interrupt(afio_exti_num num)
 	handlers[num] = NULL;	
 }
 
+void exti_enable_interrupt(afio_exti_num num, bool e){
+    if(e){
+         EXTI->IMR |= exti_channels[num].irq_line;
+    }else {
+         EXTI->IMR &= ~exti_channels[num].irq_line;
+
+    }
+}
 
 /*
  * Interrupt handlers

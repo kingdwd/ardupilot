@@ -34,6 +34,12 @@
 * reverted idiotic mainline change in Periodic interface
 * all used drivers altered to use "reschedule me" HAL feature
 * added usage for Compass' DataReady pin
+* unified exception handling 
+* added ability to bind Spectrum satellite without managed 3.3 DC-DC (requires short power off)
+* added support for Arduino32 reset sequence - negative DTR edge on 1200 baud or '1eaf' packet with high DTR
+* fixed hang on dataflash malfunction
+* fixed USB characters loss *without* hangup if disconnected
+* added failsafe on receiver's hangup - if no channel changes in 5 seconds
 * ...
 * a lot of minor enhancements
 

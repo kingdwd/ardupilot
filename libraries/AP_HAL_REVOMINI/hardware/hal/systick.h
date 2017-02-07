@@ -66,10 +66,16 @@ void systick_attach_callback(void (*callback)(void));
 uint32_t systick_micros(void);
 
 void SysTick_Handler(void);
+
+
+/*
 void HardFault_Handler(void);
 void MemManage_Handler(void);
 void BusFault_Handler(void);
 void UsageFault_Handler(void);
+*/
+void __attribute__((noreturn)) __error(uint32_t pc, uint32_t num);
+void __attribute__((noreturn)) error_throb(uint32_t num);
 
 #ifdef __cplusplus
   }

@@ -82,8 +82,12 @@ private:
     /* Check if there's data available by either reading DRDY pin or register */
     bool _data_ready();
 
+#ifdef INVENSENSE_INTERRUPT_PIN
+    void _int_handler();
+#else
     /* Poll for new data (non-blocking) */
     bool _poll_data();
+#endif
 
     /* Read and write functions taking the differences between buses into
      * account */

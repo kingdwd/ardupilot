@@ -5,7 +5,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI
+#if CONFIG_HAL_BOARD == HAL_BOARD_REVOMINI && defined(BOARD_SOFTSERIAL_RX) && defined(BOARD_SOFTSERIAL_TX)
 #include "UART_SoftDriver.h"
 
 #include <stdio.h>
