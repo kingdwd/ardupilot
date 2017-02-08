@@ -26,16 +26,3 @@ endif
 BUILDDIRS :=
 TGT_BIN   :=
 
-#CFLAGS   = $(GLOBAL_CFLAGS) $(TGT_CFLAGS)
-#CXXFLAGS = $(GLOBAL_CXXFLAGS) $(TGT_CXXFLAGS)
-#ASFLAGS  = $(GLOBAL_ASFLAGS) $(TGT_ASFLAGS)
-
-# General directory independent build rules, generate dependency information
-#$(BUILD_PATH)/%.o: %.c
-#	$(SILENT_CC) $(CC) $(CFLAGS) $(LIBRARY_INCLUDES) -MMD -MP -MF $(@:%.o=%.d) -MT $@ -o $@ -c $<
-#
-#$(BUILD_PATH)/%.o: %.cpp
-#	$(SILENT_CXX) $(CXX) $(CFLAGS) $(CXXFLAGS) $(LIBRARY_INCLUDES) -MMD -MP -MF $(@:%.o=%.d) -MT $@ -o $@ -c $<
-#
-#$(BUILD_PATH)/%.o: %.S
-#	$(SILENT_AS) $(AS) $(ASFLAGS) $(LIBRARY_INCLUDES) -MMD -MP -MF $(@:%.o=%.d) -MT $@ -o $@ -c $<

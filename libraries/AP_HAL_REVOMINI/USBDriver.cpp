@@ -80,7 +80,7 @@ size_t USBDriver::write(const uint8_t *buffer, size_t size)
     if(_usb_present && is_usb_opened()){
         while (size) {
 //                n += write(*buffer++);
-            uint8_t k=usb_write(buffer, size);
+            uint8_t k=usb_write((uint8_t *)buffer, size);
             size-=k;
             n+=k;
             buffer+=k;

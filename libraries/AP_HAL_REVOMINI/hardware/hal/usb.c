@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <boards.h>
 
 // bugfixes to ST USB stack - https://github.com/olegv142/stm32tivc_usb_cdc
 

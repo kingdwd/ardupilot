@@ -39,7 +39,7 @@
 * added support for Arduino32 reset sequence - negative DTR edge on 1200 baud or '1eaf' packet with high DTR
 * fixed hang on dataflash malfunction
 * fixed USB characters loss *without* hangup if disconnected
-* added failsafe on receiver's hangup - if no channel changes in 5 seconds
+* added failsafe on receiver's hangup - if no channel changes in 10 seconds
 * ...
 * a lot of minor enhancements
 

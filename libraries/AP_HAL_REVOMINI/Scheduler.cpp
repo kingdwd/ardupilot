@@ -381,13 +381,17 @@ void REVOMINIScheduler::_print_stats(){
         else              shed_eff = shed_eff*(1 - 1/Kf) + eff*(1/Kf);
 
         hal.console->printf("\nScheduler stats:\n  %% of full time: %5.2f  Efficiency %5.3f max loop time %ld \n", (task_time/10.0)/t /* in percent*/ , shed_eff, max_loop_time );
-        hal.console->printf("delay times: in main %5.2f including in semaphore %5.2f  in timer %5.2f in isr %5.2f \n", (delay_time/10.0)/t, (Semaphore::sem_time/10.0)/t,  (delay_int_time/10.0)/t, (isr_time/10.0)/t );
+        hal.console->printf("delay times: in main %5.2f including in semaphore %5.2f  in timer %5.2f", (delay_time/10.0)/t, (Semaphore::sem_time/10.0)/t,  (delay_int_time/10.0)/t);
 
-        hal.console->printf("IMU times: mean %5.2f max %5ld\n", (float)_IMU_fulltime/_IMU_count, _IMU_maxtime );
-
+#ifdef ISR_PROF
+        hal.console->printf("in isr %5.2f ", (isr_time/10.0)/t );
+#endif
+#if 0
+        hal.console->printf("\nIMU times: mean %5.2f max %5ld", (float)_IMU_fulltime/_IMU_count, _IMU_maxtime );
+#endif
         yield();
 
-        hal.console->printf("Task times:\n");
+        hal.console->printf("\nTask times:\n");
 
         for(int i=0; i< _num_timers; i++) {
             if(_timers[i].proc){    // task not cancelled?
@@ -779,15 +783,15 @@ union Revo_handler { // кровь кишки ассемблер :) преобр
                                     Если ссылка на функцию то младшее - адрес флеша, старше 0
 };
 */
-// SRAM1_BASE
+
 #define ADDRESS_IN_FLASH(a) ((a)>FLASH_BASE && (a)<CCMDATARAM_BASE)
 
-void revo_call_handler(Revo_hal_handler h){
-    Revo_handler h = (Revo_handler)h;
+void revo_call_handler(Revo_hal_handler hh){
+    Revo_handler h = { .h = hh.h };
 
-    if(ADDRESS_IN_FLASH(h.w[0]){
+    if(ADDRESS_IN_FLASH(h.w[0])){
         (h.vp)();
-    } else if(ADDRESS_IN_FLASH(h.w[1]) {
+    } else if(ADDRESS_IN_FLASH(h.w[1])) {
         (h.mp)();
     }
 }

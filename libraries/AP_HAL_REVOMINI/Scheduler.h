@@ -43,11 +43,13 @@ union Revo_handler { // кровь кишки ассемблер :) преобр
     //                                  Если ссылка на функцию то младшее - адрес флеша, старше 0
 };
 
+
+
 extern "C" {
     extern unsigned _estack; // defined by link script
     extern uint32_t us_ticks;
 
-    void revo_call_handler(Revo_handler h);
+    void revo_call_handler(Revo_hal_handler hh);
 }
 
 #define RAMEND ((size_t)&_estack)

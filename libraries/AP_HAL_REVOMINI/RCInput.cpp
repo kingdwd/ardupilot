@@ -254,7 +254,6 @@ uint16_t REVOMINIRCInput::_read_ppm(uint8_t ch,uint8_t n){
 }
 
 
-#define  RC_DEAD_TIME 5000 // 5 seconds no data changes
 
 uint16_t REVOMINIRCInput::read(uint8_t ch)
 {
@@ -436,7 +435,7 @@ void REVOMINIRCInput::add_dsm_uart_input() {
     }
 }
 
-#endif defined(BOARD_USART5_RX_PIN)
+#endif // defined(BOARD_USART5_RX_PIN)
 
 #ifdef BOARD_SPEKTRUM_RX_PIN
 void REVOMINIRCInput::_rc_bind(uint16_t dsmMode){

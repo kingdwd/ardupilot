@@ -14,6 +14,8 @@
 #define REVOMINI_RC_INPUT_NUM_CHANNELS 20
 
 
+#define  RC_DEAD_TIME 10000 // 10 seconds no data changes
+
 #ifndef BOARD_SPEKTRUM_RX_PIN
  #ifdef BOARD_DSM_USART
     #define BOARD_SPEKTRUM_RX_PIN (BOARD_DSM_USART.rx_pin)
@@ -40,13 +42,13 @@ class REVOMINI::PPM_parser {
 public:
     PPM_parser()
         : last_signal(0)
+        , last_change(0)
         , _ch(0)
         , _got_ppm(false)
         , _got_dsm(false)
         , _was_ppm(false)
         , _was_dsm(false)
         , _rc_mode(BOARD_RC_NONE)
-        , last_change(0)
      {}
 
     void init(uint8_t ch);
