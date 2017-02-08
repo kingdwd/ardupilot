@@ -65,7 +65,7 @@ static const usart_dev usart3 =
 /** USART3 device */
 const usart_dev * const _USART3 = &usart3;
 
-#if defined( BOARD_USART4_RX_PIN) && defined( BOARD_USART4_TX_PIN)
+#if defined(BOARD_USART4_RX_PIN) && defined(BOARD_USART4_TX_PIN)
 static ring_buffer uart4_txrb IN_CCM;
 static ring_buffer uart4_rxrb IN_CCM;
 static usart_state u4state IN_CCM;

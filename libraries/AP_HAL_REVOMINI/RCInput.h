@@ -14,7 +14,7 @@
 #define REVOMINI_RC_INPUT_NUM_CHANNELS 20
 
 
-#define  RC_DEAD_TIME 10000 // 10 seconds no data changes
+#define  RC_DEAD_TIME 60000 // 60 seconds no data changes
 
 #ifndef BOARD_SPEKTRUM_RX_PIN
  #ifdef BOARD_DSM_USART
