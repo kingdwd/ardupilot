@@ -4,6 +4,8 @@
 
 void boardInit(void);
 
+#define BOARD_OWN_NAME "REVOMINI"
+
 /**
  * @brief Configuration of the Cortex-M4 Processor and Core Peripherals
  */
@@ -21,7 +23,8 @@ void boardInit(void);
 #define STM32_PCLK1   (CYCLES_PER_MICROSECOND*1000000/4)
 #define STM32_PCLK2   (CYCLES_PER_MICROSECOND*1000000/2)
 
-#define BOARD_BUTTON_PIN     254
+
+#define BOARD_BUTTON_PIN        254 // no button
 
 #define BOARD_RFM22B_CS_PIN     103 // PA15 CS_RFM22B
 #define BOARD_RFM22B_INT_PIN    26  // PD2
@@ -107,7 +110,12 @@ void boardInit(void);
 #define BOARD_COMPASS_DEFAULT HAL_COMPASS_HMC5843
 #define BOARD_COMPASS_HMC5843_I2C_ADDR 0x1E
 #define BOARD_HMC5883_DRDY_PIN  38  // PB7 - but it not used by driver
-#define BOARD_COMPASS_HMC5843_ROTATION ROTATION_YAW_270 //  ROTATION_ROLL_180 // ROTATION_PITCH_180 //
+#define BOARD_COMPASS_HMC5843_ROTATION ROTATION_YAW_270 
+
+#define HAL_COMPASS_HMC5843_I2C_BUS     BOARD_I2C_BUS_INT
+#define HAL_COMPASS_HMC5843_I2C_EXT_BUS BOARD_I2C_BUS_EXT // external compass on soft I2C
+#define HAL_COMPASS_HMC5843_I2C_ADDR    BOARD_COMPASS_HMC5843_I2C_ADDR
+#define HAL_COMPASS_HMC5843_ROTATION    BOARD_COMPASS_HMC5843_ROTATION
 
 #define BOARD_INS_DEFAULT HAL_INS_MPU60XX_SPI
 #define BOARD_INS_ROTATION  ROTATION_YAW_180
@@ -117,7 +125,6 @@ void boardInit(void);
 
 #define BOARD_DATAFLASH_NAME "dataflash"
 
-#define BOARD_OWN_NAME "REVOMINI"
 
 # define BOARD_PUSHBUTTON_PIN   254
 # define BOARD_USB_MUX_PIN      -1
@@ -127,20 +134,27 @@ void boardInit(void);
 
 #define BOARD_USB_DMINUS 108
 
+#define BOARD_NRF_NAME "nrf24"
+#define BOARD_NRF_CS_PIN BOARD_RFM22B_CS_PIN
+
 // motor layouts
 #define REVO_MOTORS_ARDUCOPTER 0
 #define REVO_MOTORS_OPENPILOT 1
 #define REVO_MOTORS_CLEANFLIGHT 2
 
 
-   //                                    name            device   bus  mode         cs_pin                       speed_low       speed_high
+#ifdef BOARD_NRF_NAME
+   //                                    name            device   bus  mode         cs_pin                       speed_low       speed_high soft
 #define BOARD_SPI_DEVICES    { BOARD_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, BOARD_MPU6000_CS_PIN,          SPI_1_125MHZ,   SPI_9MHZ,  true }, \
-                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /* device controls CS */ , SPI_1_125MHZ,   SPI_18MHZ, false },
-//                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /**/ BOARD_DATAFLASH_CS_PIN, SPI_1_125MHZ,   SPI_18MHZ },
-
+                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /* caller controls CS */ , SPI_1_125MHZ,   SPI_18MHZ, false },\
+                             { BOARD_NRF_NAME,           _SPI3,   3,  SPI_MODE_3, 254 /* caller controls CS */,  SPI_1_125MHZ,   SPI_9MHZ,  false },
+#else
+//
+#define BOARD_SPI_DEVICES    { BOARD_INS_MPU60x0_NAME,   _SPI1,   1,  SPI_MODE_3, BOARD_MPU6000_CS_PIN,          SPI_1_125MHZ,   SPI_9MHZ,  true }, \
+                             { BOARD_DATAFLASH_NAME,     _SPI3,   3,  SPI_MODE_3, 254 /* caller controls CS */ , SPI_1_125MHZ,   SPI_18MHZ, false },
+#endif
 
 /*
-
     // @Param: MOTOR_LAYOUT
     // @DisplayName: Motor layout scheme
     // @Description: Selects how motors are numbered

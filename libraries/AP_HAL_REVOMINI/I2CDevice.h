@@ -31,13 +31,6 @@
 
 //#define I2C_DEBUG
 
-// use soft I2C driver instead hardware
-//#define SOFT_I2C
-
-// bus 2 (soft) pins
-//#define SOFT_SCL BOARD_SOFT_SCL
-//#define SOFT_SDA BOARD_SOFT_SDA
-
 using namespace REVOMINI;
 
 class REVOMINI::REVOI2CDevice : public AP_HAL::I2CDevice {
@@ -56,7 +49,7 @@ REVOI2CDevice(uint8_t bus, uint8_t address)
 	switch(bus) {
 	case 0:
 	    _offs =0;
-#ifdef SOFT_I2C
+#ifdef BOARD_SOFT_I2C
             s_i2c = Soft_I2C( 
                 _I2C1->gpio_port, _I2C1->scl_pin,
                 _I2C1->gpio_port, _I2C1->sda_pin
@@ -67,7 +60,7 @@ REVOI2CDevice(uint8_t bus, uint8_t address)
 	    break;
 	case 1:
 	    _offs = 2;
-#ifdef SOFT_I2C
+#ifdef BOARD_SOFT_I2C
             s_i2c = Soft_I2C( 
                 _I2C2->gpio_port, _I2C2->scl_pin,
                 _I2C2->gpio_port, _I2C2->sda_pin

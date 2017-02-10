@@ -1,6 +1,6 @@
 # Board-specific configuration values.  Flash and SRAM sizes in bytes.
 
-   MCU            := STM32F407VG
+   MCU            := STM32F405RG
    PRODUCT_ID     := 0003
    ERROR_LED_PORT := GPIOB
    ERROR_LED_PIN  := 4

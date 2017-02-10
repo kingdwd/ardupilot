@@ -106,6 +106,11 @@ void boardInit(void);
 //#define BOARD_HMC5883_DRDY_PIN  38  // PB7 - but it not used by driver
 #define BOARD_COMPASS_HMC5843_ROTATION ROTATION_NONE
 
+#define HAL_COMPASS_HMC5843_I2C_BUS     BOARD_I2C_BUS_INT
+#define HAL_COMPASS_HMC5843_I2C_ADDR    BOARD_COMPASS_HMC5843_I2C_ADDR
+#define HAL_COMPASS_HMC5843_ROTATION    BOARD_COMPASS_HMC5843_ROTATION
+
+
 #define BOARD_INS_DEFAULT HAL_INS_MPU60XX_SPI
 #define BOARD_INS_ROTATION  ROTATION_YAW_180
 #define BOARD_INS_MPU60x0_NAME            "mpu6000"
@@ -128,6 +133,9 @@ void boardInit(void);
 #define REVO_MOTORS_ARDUCOPTER 0
 #define REVO_MOTORS_OPENPILOT 1
 #define REVO_MOTORS_CLEANFLIGHT 2
+
+// use soft I2C driver instead hardware
+#define BOARD_SOFT_I2C
 
 
    //                                    name            device   bus  mode         cs_pin                       speed_low       speed_high

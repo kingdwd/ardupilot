@@ -134,8 +134,8 @@ WARNFLAGS      +=   -Wno-error=pmf-conversions -Wno-error=missing-declarations -
 OPTFLAGS        = -Os
 OPTFLAGS       += -fsingle-precision-constant -g3 -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer -fearly-inlining -fpredictive-commoning
 OPTFLAGS       += -fno-builtin-printf -fno-aggressive-loop-optimizations 
-#OPTFLAGS       += -ffast-math 
-OPTFLAGS       += -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math -funsafe-math-optimizations -fno-finite-math-only
+#OPTFLAGS       += -ffast-math -funsafe-math-optimizations -fno-finite-math-only
+OPTFLAGS       += -fassociative-math -freciprocal-math -fno-signed-zeros -fno-trapping-math 
 OPTFLAGS       += -finline-functions-called-once -fearly-inlining
 OPTFLAGS       += -finline-small-functions
 OPTFLAGS       += -fmerge-all-constants
@@ -147,7 +147,7 @@ GLOBAL_FLAGS    := -D$(VECT_BASE_ADDR)
 GLOBAL_FLAGS    += -DBOARD_$(BOARD)
 GLOBAL_FLAGS    += -DMCU_$(MCU)
 GLOBAL_FLAGS    += -DCONFIG_HAL_BOARD=$(HAL_BOARD)
-GLOBAL_FLAGS    += -DSTM32F4XX -DMCU_STM32F405RG
+GLOBAL_FLAGS    += -DSTM32F4XX
 GLOBAL_FLAGS    += -DUSE_STDPERIPH_DRIVER
 GLOBAL_FLAGS    += -DHSE_VALUE=8000000
 GLOBAL_FLAGS    += -DARM_MATH_CM4

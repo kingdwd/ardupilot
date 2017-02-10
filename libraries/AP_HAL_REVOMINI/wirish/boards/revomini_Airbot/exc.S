@@ -91,7 +91,7 @@ __default_exc:
     push {r1}
     push {r1}                   @ target LR - the same
     sub sp, sp, #12             @ Don't care - R12 R3 R2
-    push {r1}                   @ R1 - PC of exception
+    push {r3}                   @ R1 - PC of exception
     push {r0}                   @ R0 - exception code
     ldr r1, EXC_RETURN          @ Return to thread mode
     mov lr, r1

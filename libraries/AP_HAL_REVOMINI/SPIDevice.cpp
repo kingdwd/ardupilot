@@ -299,6 +299,15 @@ uint8_t SPIDevice::_transfer(uint8_t data) {
 }
 
 
+uint8_t SPIDevice::transfer(uint8_t out){
+
+    if(_desc.soft) {
+        return _transfer_s(out);
+    } else {
+        return _transfer(out);
+    }
+    
+}
     
 
 bool SPIDevice::transfer(const uint8_t *send, uint32_t send_len, uint8_t *recv, uint32_t recv_len){

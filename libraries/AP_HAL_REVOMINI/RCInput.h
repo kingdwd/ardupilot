@@ -9,6 +9,7 @@
 #include "AP_HAL_REVOMINI.h"
 #include "UARTDriver.h"
 #include <usart.h>
+#include "RC_parser.h"
 
 #define REVOMINI_RC_INPUT_MIN_CHANNELS 4
 #define REVOMINI_RC_INPUT_NUM_CHANNELS 20
@@ -27,95 +28,6 @@ enum BOARD_RC_MODE {
     BOARD_RC_SBUS,
     BOARD_RC_DSM,
 };
-
-enum BOARD_LAST_INPUT {
-    BOARD_INPUT_NONE=0,
-    BOARD_INPUT_DSM,
-    BOARD_INPUT_P0,
-    BOARD_INPUT_P1,
-};
-
-
-
-// helper class with all parsers to localize all internal data
-class REVOMINI::PPM_parser {
-public:
-    PPM_parser()
-        : last_signal(0)
-        , last_change(0)
-        , _ch(0)
-        , _got_ppm(false)
-        , _got_dsm(false)
-        , _was_ppm(false)
-        , _was_dsm(false)
-        , _rc_mode(BOARD_RC_NONE)
-     {}
-
-    void init(uint8_t ch);
-
-    volatile uint64_t last_signal;
-    volatile uint16_t val[REVOMINI_RC_INPUT_NUM_CHANNELS];
-    volatile uint8_t valid_channels;
-    volatile uint64_t last_change;
-
-protected:
-    void parse_pulses(void);
-
-private:
-
-    void rxIntRC(uint16_t value0, uint16_t value1, bool state);
-
-    bool _process_ppmsum_pulse(uint16_t value);
-    void _process_dsm_pulse(uint16_t width_s0, uint16_t width_s1);
-    void _process_sbus_pulse(uint16_t width_s0, uint16_t width_s1);
-
-
-    void add_dsm_input();  // add some DSM input bytes, for RCInput over a PPMSUM line
-    void add_sbus_input(); // add some SBUS input bytes, for RCInput over a PPMSUM line
-
-    uint8_t _ch;
-
-    Pulse last_pulse;
-    uint8_t channel_ctr;
-
-    bool _got_ppm;
-    bool _got_dsm;
-
-    bool _was_ppm; 
-    bool _was_dsm;
-
-    // state of add_dsm_input
-    struct DSM {
-        uint8_t frame[16];
-        uint8_t partial_frame_count;
-        uint64_t last_input_ms;
-    } dsm;
-
-    // state of add_sbus_input
-    struct SBUS {
-        uint8_t frame[26];
-        uint8_t partial_frame_count;
-        uint32_t last_input_ms;
-    } sbus;
-    
-    
-    // state of SBUS bit decoder
-    struct SbusState {
-        uint16_t bytes[25]; // including start bit, parity and stop bits
-        uint16_t bit_ofs;
-    } sbus_state;
-
-    // state of DSM bit decoder
-    struct DSM_State {
-        uint16_t bytes[16]; // including start bit and stop bit
-        uint16_t bit_ofs;
-    } dsm_state;
-
-    enum BOARD_RC_MODE _rc_mode;    
-};
-
-
-
 
 
 
@@ -137,7 +49,9 @@ public:
     bool rc_bind(int dsmMode) override;
     
 private:
-    static PPM_parser parsers[];
+    static _parser *parsers[];
+    static uint8_t num_parsers;
+    static uint8_t _last_read_from;
     
     static bool is_PPM;
 
@@ -154,25 +68,7 @@ private:
     static uint16_t _override[8];
     static bool _override_valid;
     
-#ifdef BOARD_SPEKTRUM_RX_PIN
-    static REVOMINIUARTDriver uartSDriver; 
-    static volatile uint64_t _dsm_last_signal;
-    static volatile uint16_t _dsm_val[REVOMINI_RC_INPUT_NUM_CHANNELS];
-    static volatile uint8_t  _dsm_channels;
-    static uint64_t last_dsm_change;
 
-    static void add_dsm_uart_input(); // add some DSM input bytes, for RCInput over a serial port
-    
-    static struct DSM { // state of add_dsm_uart_input
-        uint8_t frame[16];
-        uint8_t partial_frame_count;
-        uint64_t last_input_ms;
-    } dsm;
-
-    static void _rc_bind(uint16_t dsmMode);    
-#endif
-
-    static enum BOARD_LAST_INPUT  _last_read_from;
     
 };
 

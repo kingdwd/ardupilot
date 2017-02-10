@@ -7,6 +7,15 @@
 #include "GPIO.h"
 #include "ring_buffer_pulse.h"
 
+#include "RC_PPM_parser.h"
+
+#ifdef BOARD_SPEKTRUM_RX_PIN
+ #include "RC_DSM_parser.h"
+#endif
+#ifdef BOARD_NRF_CS_PIN
+ #include "RC_NRF_parser.h"
+#endif
+
 // Constructors ////////////////////////////////////////////////////////////////
 using namespace AP_HAL;
 using namespace REVOMINI;
@@ -22,19 +31,8 @@ DSM    GND     rx  en
 */
 
 
-#define PPM_INPUTS 2
-
 extern const AP_HAL::HAL& hal;
-
-#define RISING_EDGE 1
-#define FALLING_EDGE 0
-
-#define MINONWIDTH 950
-#define MAXONWIDTH 2075
-
-#define MINCHECK 900
-#define MAXCHECK 2100
-
+/*
 static const uint8_t input_channels[]={ 
     4,  // PB14 T12/1 - PPM
     5,  // PB15 T12/2 - PPM2
@@ -43,35 +41,32 @@ static const uint8_t input_channels[]={
     14, // PC8  T8/3  - Soft_scl 
     15, // PC9  T8/4  - Soft_sda
 };
+*/
 
-
-PPM_parser REVOMINIRCInput::parsers[PPM_INPUTS]; // individual parsers on each PPM pin
-
-#if defined(BOARD_USART5_RX_PIN)
-REVOMINIUARTDriver REVOMINIRCInput::uartSDriver(_UART5);
-#endif
-
+_parser *REVOMINIRCInput::parsers[] = { // individual parsers on each PPM pin and DSM USART
+    new PPM_parser, 
+    new PPM_parser, 
 #ifdef BOARD_SPEKTRUM_RX_PIN
-volatile uint16_t REVOMINIRCInput::_dsm_val[REVOMINI_RC_INPUT_NUM_CHANNELS] IN_CCM;
-volatile uint64_t REVOMINIRCInput::_dsm_last_signal IN_CCM;
-uint64_t          REVOMINIRCInput::last_dsm_change IN_CCM;
-volatile uint8_t  REVOMINIRCInput::_dsm_channels = 0;
-struct REVOMINIRCInput::DSM        REVOMINIRCInput::dsm;
+    new DSM_parser, 
 #endif
+#ifdef BOARD_NRF_CS_PIN
+    new NRF_parser,
+#endif
+}; 
+
+#define PPM_INPUTS (sizeof(parsers) / sizeof(_parser))
+
 
 uint8_t           REVOMINIRCInput::_valid_channels = 0;
 uint64_t          REVOMINIRCInput::_last_read = 0;
 
 
-
 uint16_t REVOMINIRCInput::_override[8];
-
 bool REVOMINIRCInput::_override_valid;
 
 bool REVOMINIRCInput::is_PPM = true;
 
-
-enum BOARD_LAST_INPUT REVOMINIRCInput::_last_read_from=BOARD_INPUT_NONE;
+uint8_t REVOMINIRCInput::_last_read_from=0;
 
 
 /* constrain captured pulse to be between min and max pulsewidth. */
@@ -90,32 +85,9 @@ REVOMINIRCInput::REVOMINIRCInput()
 void REVOMINIRCInput::init() {
 
     memset((void *)&_override[0],   0, sizeof(_override));
-    memset((void *)&_dsm_val[0],    0, sizeof(_dsm_val));
-
-    uint32_t sig = board_get_rtc_register(RTC_DSM_BIND_REG);
-    if( (sig & ~DSM_BIND_SIGN_MASK) == DSM_BIND_SIGNATURE) {
-        board_set_rtc_register(0, RTC_DSM_BIND_REG);
-        _rc_bind(sig & DSM_BIND_SIGN_MASK);
-    }
-
-    _dsm_last_signal=0;
-    last_dsm_change =0;
-
-#if defined(BOARD_USART5_RX_PIN)
-    REVOMINIGPIO::_pinMode(BOARD_SPEKTRUM_RX_PIN, INPUT_PULLUP);
- #ifdef BOARD_SPEKTRUM_PWR_PIN
-    REVOMINIGPIO::_pinMode(BOARD_SPEKTRUM_PWR_PIN, OUTPUT);
-    REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_ON);
- #endif
-
-    // initialize DSM UART
-    uartSDriver.begin(115200);
-    uartSDriver.setCallback(add_dsm_uart_input);
-#endif
-
 
     for(uint8_t i=0; i<PPM_INPUTS;i++) {
-        parsers[i].init(i);
+        parsers[i]->init(i);
     }
 
 
@@ -203,10 +175,13 @@ used as:
 // we have 3 individual sources of data - internal DSM from UART5 and 2 PPM parsers
 bool REVOMINIRCInput::new_input()
 {
-    return _override_valid || 
-           _dsm_last_signal >_last_read ||
-           parsers[0].last_signal >_last_read ||
-           parsers[1].last_signal >_last_read;
+    if(_override_valid) return true;
+
+    for(uint8_t i=0; i<PPM_INPUTS;i++) {
+        if(parsers[i]->get_last_signal() >_last_read) return true;
+    }
+    
+    return false;
 }
 
 
@@ -233,22 +208,13 @@ uint16_t REVOMINIRCInput::last_4=0;
 //#define LOST_TIME 50 // this is wrong! Any packet lost and viola... 
 #define LOST_TIME 500
 
-uint16_t REVOMINIRCInput::_read_dsm(uint8_t ch){
-    uint16_t data=0;
-    noInterrupts();
-        _last_read = _dsm_last_signal;
-        data = _dsm_val[ch];
-        _valid_channels = _dsm_channels;
-    interrupts();
-    return data;
-}
-
 uint16_t REVOMINIRCInput::_read_ppm(uint8_t ch,uint8_t n){
     uint16_t data=0;
+    
+    _parser *p = parsers[n];
     noInterrupts();
-        _last_read = parsers[n].last_signal;
-        data =       parsers[n].val[ch];
-        _valid_channels = parsers[n].valid_channels;
+        data =            p->get_val(ch);
+        _valid_channels = p->get_valid_channels();
     interrupts();
     return data;
 }
@@ -259,45 +225,37 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
 {
     uint16_t data=0;
     uint64_t pulse=0;
+    uint64_t last=0;
 
     if(ch>=REVOMINI_RC_INPUT_NUM_CHANNELS) return 0;
 
     uint64_t now=systick_uptime();
-    uint64_t last;
+    uint8_t got=0;
 
-    if(_dsm_last_signal >_last_read && (now-last_dsm_change) < RC_DEAD_TIME){ // read new data
-        data = _read_dsm(ch);
-        pulse = _last_read;
-        _last_read_from = BOARD_INPUT_DSM;
-        last = last_dsm_change;
-    } else if( parsers[0].last_signal >_last_read && (now-parsers[0].last_change) < RC_DEAD_TIME) {
-        data = _read_ppm(ch,0);
-        pulse =  _last_read;
-        _last_read_from = BOARD_INPUT_P0;
-        last = parsers[0].last_change;
-    } else if( parsers[1].last_signal >_last_read && (now-parsers[1].last_change) < RC_DEAD_TIME) {
-        data = _read_ppm(ch,1);
-        pulse =      _last_read;
-        _last_read_from = BOARD_INPUT_P1;
-        last = parsers[1].last_change;
+    for(uint8_t i=0; i<PPM_INPUTS;i++) {
+        _parser *p = parsers[i];
+        pulse = p->get_last_signal();
+        last  = p->get_last_change();
+        if( pulse >_last_read && (now - last ) < RC_DEAD_TIME) {
+            data = _read_ppm(ch,i);
+            got = i+1;
+            break;
+        }
+    }
+    
+    if(got)  {
+        _last_read_from =got;
+        _last_read = pulse;
     } else {
-        switch(_last_read_from){                // read latest source
-        case BOARD_INPUT_DSM:
-            data = _read_dsm(ch);
-            pulse = _last_read;
-            last = last_dsm_change;
-            break;
-        case BOARD_INPUT_P0:
-            data = _read_ppm(ch,0);
-            pulse = _last_read;
-            last =  parsers[0].last_change;
-            break;
-        case BOARD_INPUT_P1:
-            data = _read_ppm(ch,1);
-            pulse = _last_read;
-            last =  parsers[1].last_change;
-            break;
-        default:  
+        if(_last_read_from) {
+            uint8_t n = _last_read_from-1;
+            _parser *p = parsers[n];
+            pulse = p->get_last_signal();
+            last  = p->get_last_change();
+            data = _read_ppm(ch,n);
+            _last_read = pulse;
+        } else {
+
 #ifdef PWM_SUPPORTED
             if (!is_PPM) {
                 data = pwmRead(ch, &pulse);
@@ -306,11 +264,9 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
 #endif    
             if( ch == 2) data = 900;
             else         data = 1000;
-            break;
         }
     
     }
-
 
     /* Check for override */
     uint16_t over = _override[ch];
@@ -320,7 +276,7 @@ uint16_t REVOMINIRCInput::read(uint8_t ch)
         last_4 = data;
     }
 
-    if( ch == 2) {
+    if( ch == 2 ) { // throttle
         if( (now - pulse) > LOST_TIME || (now-last) > RC_DEAD_TIME ){
             data = 900;
         }
@@ -377,107 +333,11 @@ void REVOMINIRCInput::clear_overrides()
     }
 }
 
-#if defined(BOARD_USART5_RX_PIN)
-/*
-  add some bytes of input in DSM serial stream format, coping with partial packets - UART input callback
- */
-void REVOMINIRCInput::add_dsm_uart_input() {
-    
-    while(uartSDriver.available()){
-        
-        // at least 1 byte we have
-        const uint8_t dsm_frame_size = sizeof(dsm.frame);
-
-        uint32_t now = AP_HAL::millis();    
-        if (now - dsm.last_input_ms > 5) {
-            // resync based on time
-            dsm.partial_frame_count = 0;
-        }
-        dsm.last_input_ms = now;
-    
-        if (dsm.partial_frame_count + 1 > dsm_frame_size) {
-            return; // we can't add bytes to buffer
-        }
-        
-
-
-        dsm.frame[dsm.partial_frame_count] = uartSDriver.read();
-        dsm.partial_frame_count += 1;
-
-	if (dsm.partial_frame_count == dsm_frame_size) {
-            dsm.partial_frame_count = 0;
-            uint16_t values[16] {};
-            uint16_t num_values=0;
-            if (dsm_decode(AP_HAL::micros64(), dsm.frame, values, &num_values, 16) &&
-                num_values >= 5) {
-                for (uint8_t i=0; i<num_values; i++) {
-                    if (values[i] != 0) {
-                        if(_dsm_val[i] != values[i]) last_dsm_change = systick_uptime();
-                        _dsm_val[i] = values[i];
-                    }
-                }
-                /*
-                  the apparent number of channels can change on DSM,
-                  as they are spread across multiple frames. We just
-                  use the max num_values we get
-                 */
-                if (num_values > _dsm_channels) {
-                    _dsm_channels = num_values;
-                }
-                _dsm_last_signal = systick_uptime();
-#if 0
-                HAP_PRINTF("Decoded DSM %u channels %u %u %u %u %u %u %u %u\n",
-                           (unsigned)num_values,
-                           values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7]);
-#endif
-            }
-        }
-    }
-}
-
-#endif // defined(BOARD_USART5_RX_PIN)
-
-#ifdef BOARD_SPEKTRUM_RX_PIN
-void REVOMINIRCInput::_rc_bind(uint16_t dsmMode){
-    
-
-    REVOMINIScheduler::_delay(72);
-
-    for (int i = 0; i < dsmMode; i++) {                         /*Pulse RX pin a number of times*/
-	REVOMINIScheduler::_delay_microseconds(120);
-	REVOMINIGPIO::_write(BOARD_SPEKTRUM_RX_PIN, 0);
-	REVOMINIScheduler::_delay_microseconds(120);
-	REVOMINIGPIO::_write(BOARD_SPEKTRUM_RX_PIN, 1);
-    }
-
-    REVOMINIScheduler::_delay(50);
-
-}
-
-
-
 bool REVOMINIRCInput::rc_bind(int dsmMode){
-#ifdef BOARD_SPEKTRUM_PWR_PIN
-    uartSDriver.end();
-
-    REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_OFF); /*power down DSM satellite*/
-
-    REVOMINIScheduler::_delay(500);
-
-    REVOMINIGPIO::_pinMode(BOARD_SPEKTRUM_RX_PIN, OUTPUT);           /*Set UART RX pin to active output mode*/
-
-    REVOMINIGPIO::_write(BOARD_SPEKTRUM_PWR_PIN, BOARD_SPEKTRUM_PWR_ON);     /* power up DSM satellite*/
-
-    _rc_bind(dsmMode);
-
-    uartSDriver.begin(115200);                                  	/*Restore USART RX pin to RS232 receive mode*/
-
+#ifdef BOARD_SPEKTRUM_RX_PIN
+    return parsers[2]->bind(dsmMode); // only DSM
 #else
-    // store request to bing in BACKUP RAM
-    board_set_rtc_register(DSM_BIND_SIGNATURE | ( dsmMode & DSM_BIND_SIGN_MASK), RTC_DSM_BIND_REG);
-     
+    return false;
 #endif
-    return true;
-}
 
-#endif // BOARD_SPEKTRUM_RX_PIN
+}
