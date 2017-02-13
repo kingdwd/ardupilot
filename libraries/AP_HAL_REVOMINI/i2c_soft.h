@@ -38,6 +38,8 @@ public:
     uint16_t getErrorCounter(void) { return i2cErrorCount; }
 
     void bus_reset(void);
+    
+    void set_low_speed(bool s) { _dly_time = s?5:1; } 
 
 private:
     const gpio_dev *_scl_dev;
@@ -49,7 +51,9 @@ private:
     uint16_t               scl_pin;
     volatile GPIO_TypeDef *sda_port;
     uint16_t               sda_pin;
-    
+
+    void _delay(void);
+    uint16_t _dly_time;    
 
 
     volatile uint16_t i2cErrorCount = 0;

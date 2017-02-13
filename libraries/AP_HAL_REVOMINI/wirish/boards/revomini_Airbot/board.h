@@ -95,7 +95,8 @@ void boardInit(void);
 
 
 #define BOARD_I2C_BUS_INT 1  // hardware internal I2C
-#define BOARD_I2C_BUS_EXT 1  // external I2C
+//#define BOARD_I2C_BUS_EXT 1  // external I2C
+#define BOARD_I2C_BUS_EXTERNAL 1 // slow down bus with this number
 
 
 #define BOARD_BARO_DEFAULT HAL_BARO_MS5611_I2C

@@ -26,10 +26,7 @@ static void delay_10us(){
     REVOMINIScheduler::_delay_microseconds(10);
 }
 
-static void _delay(void)
-{
-    REVOMINIScheduler::_delay_microseconds(1);// delay at each line change so speed is near 250kHz
-}
+void Soft_I2C::_delay(void) {   REVOMINIScheduler::_delay_microseconds(_dly_time); } // delay at each line change so speed is near 250kHz
 
 bool Soft_I2C::_Start(void)
 {
@@ -137,6 +134,8 @@ Soft_I2C::Soft_I2C( const gpio_dev *scl_dev, uint8_t scl_bit, const gpio_dev *sd
 
     scl_port = scl_dev->GPIOx;
     scl_pin  = 1<<scl_bit;
+    
+    _dly_time=1; 
 }
 
 Soft_I2C::Soft_I2C() 

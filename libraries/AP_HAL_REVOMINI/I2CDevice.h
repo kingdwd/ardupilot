@@ -54,6 +54,10 @@ REVOI2CDevice(uint8_t bus, uint8_t address)
                 _I2C1->gpio_port, _I2C1->scl_pin,
                 _I2C1->gpio_port, _I2C1->sda_pin
             );
+#if defined(BOARD_I2C_BUS_EXTERNAL) && BOARD_I2C_BUS_EXTERNAL==0
+            s_i2c.set_low_speed(true);
+#endif
+
 #else
 	    dev = _I2C1;
 #endif
@@ -65,6 +69,9 @@ REVOI2CDevice(uint8_t bus, uint8_t address)
                 _I2C2->gpio_port, _I2C2->scl_pin,
                 _I2C2->gpio_port, _I2C2->sda_pin
             );
+#if defined(BOARD_I2C_BUS_EXTERNAL) && BOARD_I2C_BUS_EXTERNAL==1
+            s_i2c.set_low_speed(true);
+#endif
 #else
 	    dev = _I2C2;
 #endif
@@ -76,7 +83,10 @@ REVOI2CDevice(uint8_t bus, uint8_t address)
 	    s_i2c = Soft_I2C( 
                 PIN_MAP[BOARD_SOFT_SCL].gpio_device,     PIN_MAP[BOARD_SOFT_SCL].gpio_bit,
                 PIN_MAP[BOARD_SOFT_SDA].gpio_device,     PIN_MAP[BOARD_SOFT_SDA].gpio_bit
-            );
+            );        
+#if defined(BOARD_I2C_BUS_EXTERNAL) && BOARD_I2C_BUS_EXTERNAL==2
+            s_i2c.set_low_speed(true);
+#endif
             break;
 	}
         _dev = dev; // remember
