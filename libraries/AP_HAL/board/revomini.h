@@ -1,7 +1,7 @@
 #include <AP_HAL_REVOMINI/AP_HAL_REVOMINI_Namespace.h>
 
 #define AP_HAL_BOARD_DRIVER             AP_HAL_REVOMINI
-#define HAL_SERIAL0_BAUD_DEFAULT        115200
+#define HAL_SERIAL0_BAUD_DEFAULT        (115200)
 #define CONFIG_HAL_BOARD_SUBTYPE        HAL_BOARD_SUBTYPE_NONE
 
 
@@ -16,9 +16,12 @@
 #define HAL_BARO_MS5611_I2C_BUS         BOARD_I2C_BUS_INT
 #define HAL_BARO_MS5611_I2C_ADDR        BOARD_BARO_MS5611_I2C_ADDR
 
+
 #ifdef BOARD_I2C_BUS_EXT
- #define HAL_BARO_MS5611_I2C_BUS_EXT     BOARD_I2C_BUS_EXT  // external baro on soft I2C
- #define HAL_BARO_BMP280_BUS             BOARD_I2C_BUS_EXT  // external baro on soft I2C
+ #define HAL_BARO_MS5611_I2C_BUS_EXT    BOARD_I2C_BUS_EXT  // external baro on soft I2C
+ #define HAL_BARO_BMP280_BUS            BOARD_I2C_BUS_EXT  // external baro on soft I2C
+#else 
+ #define HAL_BARO_BMP280_BUS            BOARD_I2C_BUS_INT
 #endif
 
 #define HAL_BARO_BMP280_I2C_ADDR        (0x76)

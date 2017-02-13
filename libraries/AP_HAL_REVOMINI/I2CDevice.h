@@ -143,7 +143,7 @@ REVOI2CDevice(uint8_t bus, uint8_t address)
 
 private:
     void init(){
-	if(!_initialized)
+	if(!_initialized && _dev)
 //	    i2c_init(_dev, _offs, I2C_400KHz_SPEED);
 	    i2c_init(_dev, _offs, I2C_250KHz_SPEED);
 	_initialized=true;
@@ -176,7 +176,9 @@ public:
 
     /* AP_HAL::I2CDeviceManager implementation */
     AP_HAL::OwnPtr<AP_HAL::I2CDevice> get_device(uint8_t bus, uint8_t address) {
-        return AP_HAL::OwnPtr<AP_HAL::I2CDevice>(new REVOI2CDevice(bus, address));
+        return AP_HAL::OwnPtr<AP_HAL::I2CDevice>(
+            new REVOI2CDevice(bus, address)
+        );
     }
 };
 
